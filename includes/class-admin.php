@@ -353,6 +353,60 @@ class Admin {
 			exit;
 		}
 
+		// Handle attendance file upload.
+		if ( isset( $_POST['sms_upload_attendance_file'] ) ) {
+			if ( ! isset( $_POST['sms_attendance_upload_nonce_field'] ) || ! wp_verify_nonce( $_POST['sms_attendance_upload_nonce_field'], 'sms_attendance_upload_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			if ( ! empty( $_FILES['attendance_file']['name'] ) ) {
+				// These files need to be passed as reference.
+				$uploaded_file = $_FILES['attendance_file'];
+				$upload_overrides = array( 'test_form' => false );
+
+				// Handle the upload.
+				$movefile = wp_handle_upload( $uploaded_file, $upload_overrides );
+
+				if ( $movefile && ! isset( $movefile['error'] ) ) {
+					// The file was uploaded successfully.
+					update_option( 'sms_attendance_uploaded_file', $movefile );
+					wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=file_uploaded' ) );
+					exit;
+				} else {
+					// An error occurred during the upload.
+					wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=file_upload_error' ) );
+					exit;
+				}
+			} else {
+				wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=no_file_selected' ) );
+				exit;
+			}
+		}
+
+		// Handle attendance file deletion.
+		if ( isset( $_GET['action'] ) && 'delete_attendance_file' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-attendance' === $_GET['page'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_attendance_file_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$uploaded_file = get_option( 'sms_attendance_uploaded_file' );
+			if ( $uploaded_file && ! empty( $uploaded_file['file'] ) ) {
+				wp_delete_file( $uploaded_file['file'] );
+				delete_option( 'sms_attendance_uploaded_file' );
+			}
+
+			wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=file_deleted' ) );
+			exit;
+		}
+
 		// Handle teacher form submission.
 		if ( isset( $_POST['sms_add_teacher'] ) || isset( $_POST['sms_edit_teacher'] ) ) {
 			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
