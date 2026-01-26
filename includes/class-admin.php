@@ -215,11 +215,11 @@ class Admin {
 						<div class="meta-box-sortables">
 							<?php
 							$uploaded_files = get_option( 'sms_attendance_uploaded_files', array() );
-							if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) :
-								?>
+							?>
 							<div class="postbox">
 								<h2 class="hndle"><span><?php esc_html_e( 'Notice Files', 'school-management-system' ); ?></span></h2>
 								<div class="inside">
+									<?php if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) : ?>
 									<ul style="margin-left: 0; padding-left: 0;">
 										<?php foreach ( $uploaded_files as $file ) : ?>
 											<li style="margin-bottom: 5px;">
@@ -230,12 +230,14 @@ class Admin {
 											</li>
 										<?php endforeach; ?>
 									</ul>
+									<?php else : ?>
+										<p><?php esc_html_e( 'No notices found.', 'school-management-system' ); ?></p>
+									<?php endif; ?>
 									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-attendance' ) ); ?>" class="button">
 										<?php esc_html_e( 'Manage Notices', 'school-management-system' ); ?>
 									</a>
 								</div>
 							</div>
-							<?php endif; ?>
 						</div>
 					</div>
 				</div>
