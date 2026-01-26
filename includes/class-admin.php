@@ -92,6 +92,16 @@ class Admin {
 			array( $this, 'display_attendance' )
 		);
 
+		// Student Attendance submenu.
+		add_submenu_page(
+			'sms-dashboard',
+			__( 'Attendance', 'school-management-system' ),
+			__( 'Attendance', 'school-management-system' ),
+			'manage_options',
+			'sms-student-attendance',
+			array( $this, 'display_student_attendance' )
+		);
+
 		// Fees submenu.
 		add_submenu_page(
 			'sms-dashboard',
@@ -164,6 +174,12 @@ class Admin {
 										<div class="sms-card">
 											<h3><?php esc_html_e( 'Total Exams', 'school-management-system' ); ?></h3>
 											<p class="sms-card-value"><?php echo intval( Exam::count() ); ?></p>
+										</div>
+										<div class="sms-card">
+											<h3><?php esc_html_e( 'Present Today', 'school-management-system' ); ?></h3>
+											<p class="sms-card-value">
+												<?php echo intval( Attendance::count( array( 'attendance_date' => current_time( 'Y-m-d' ), 'status' => 'present' ) ) ); ?>
+											</p>
 										</div>
 									</div>
 								</div>
@@ -286,6 +302,13 @@ class Admin {
 	 */
 	public function display_attendance() {
 		include SMS_PLUGIN_DIR . 'admin/templates/attendance.php';
+	}
+
+	/**
+	 * Display student attendance page.
+	 */
+	public function display_student_attendance() {
+		include SMS_PLUGIN_DIR . 'admin/templates/student-attendance.php';
 	}
 
 	/**
@@ -694,6 +717,31 @@ class Admin {
 				Result::update( $result_id, $result_data );
 				wp_redirect( admin_url( 'admin.php?page=sms-results' ) );
 				exit;
+			}
+		}
+
+		// Handle attendance marking.
+		if ( isset( $_POST['sms_mark_attendance'] ) ) {
+			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$class_id = intval( $_POST['class_id'] ?? 0 );
+			$attendance_date = sanitize_text_field( $_POST['attendance_date'] ?? '' );
+			$attendance_data = $_POST['attendance'] ?? array();
+
+			if ( $class_id > 0 && ! empty( $attendance_date ) && is_array( $attendance_data ) ) {
+				foreach ( $attendance_data as $student_id => $status ) {
+					Attendance::mark_attendance( intval( $student_id ), $class_id, $attendance_date, sanitize_text_field( $status ) );
+				}
+				wp_redirect( add_query_arg( array( 'page' => 'sms-student-attendance', 'class_id' => $class_id, 'date' => $attendance_date, 'sms_message' => 'attendance_saved' ), admin_url( 'admin.php' ) ) );
+				exit;
+			} else {
+				wp_die( esc_html__( 'Invalid data provided.', 'school-management-system' ) );
 			}
 		}
 	}
