@@ -426,6 +426,25 @@ class Admin {
 			exit;
 		}
 
+		// Handle fee deletion.
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-fees' === $_GET['page'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_fee_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$fee_id = intval( $_GET['id'] ?? 0 );
+			if ( $fee_id > 0 ) {
+				Fee::delete( $fee_id );
+			}
+
+			wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_deleted' ) );
+			exit;
+		}
+
 		// Handle notice file upload.
 		if ( isset( $_POST['sms_upload_attendance_file'] ) ) {
 			if ( ! isset( $_POST['sms_attendance_upload_nonce_field'] ) || ! wp_verify_nonce( $_POST['sms_attendance_upload_nonce_field'], 'sms_attendance_upload_nonce' ) ) {
@@ -716,6 +735,43 @@ class Admin {
 				$result_id = intval( $_POST['result_id'] ?? 0 );
 				Result::update( $result_id, $result_data );
 				wp_redirect( admin_url( 'admin.php?page=sms-results' ) );
+				exit;
+			}
+		}
+
+		// Handle fee form submission.
+		if ( isset( $_POST['sms_add_fee'] ) || isset( $_POST['sms_edit_fee'] ) ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			$fee_data = array(
+				'student_id'   => intval( $_POST['student_id'] ?? 0 ),
+				'class_id'     => intval( $_POST['class_id'] ?? 0 ),
+				'fee_type'     => sanitize_text_field( $_POST['fee_type'] ?? '' ),
+				'amount'       => floatval( $_POST['amount'] ?? 0 ),
+				'due_date'     => sanitize_text_field( $_POST['due_date'] ?? '' ),
+				'payment_date' => sanitize_text_field( $_POST['payment_date'] ?? '' ),
+				'status'       => sanitize_text_field( $_POST['status'] ?? 'pending' ),
+				'remarks'      => sanitize_textarea_field( $_POST['remarks'] ?? '' ),
+			);
+
+			if ( 'paid' === $fee_data['status'] && empty( $fee_data['payment_date'] ) ) {
+				$fee_data['payment_date'] = current_time( 'Y-m-d' );
+			}
+
+			if ( isset( $_POST['sms_add_fee'] ) ) {
+				Fee::add( $fee_data );
+				wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_added' ) );
+				exit;
+			} elseif ( isset( $_POST['sms_edit_fee'] ) ) {
+				$fee_id = intval( $_POST['fee_id'] ?? 0 );
+				Fee::update( $fee_id, $fee_data );
+				wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_updated' ) );
 				exit;
 			}
 		}
