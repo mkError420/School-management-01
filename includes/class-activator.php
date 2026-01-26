@@ -142,7 +142,7 @@ class Activator {
 			UNIQUE KEY unique_enrollment (student_id, class_id, subject_id)
 		) $charset_collate;";
 
-		// Attendance table.
+		// Notice table.
 		$attendance_table = $wpdb->prefix . 'sms_attendance';
 		$sql_attendance   = "CREATE TABLE IF NOT EXISTS $attendance_table (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,

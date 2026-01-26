@@ -27,11 +27,12 @@ if ( 'edit' === $action && $exam_id ) {
 
 ?>
 <div class="wrap">
-	<h1><?php esc_html_e( 'Exams', 'school-management-system' ); ?></h1>
+	<h1><?php esc_html_e( 'School Management System Dashboard', 'school-management-system' ); ?></h1>
+	<h2><?php esc_html_e( 'Exams', 'school-management-system' ); ?></h2>
 
 	<!-- Add/Edit Form -->
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
-		<h2><?php echo $is_edit ? esc_html__( 'Edit Exam', 'school-management-system' ) : esc_html__( 'Add New Exam', 'school-management-system' ); ?></h2>
+		<h3><?php echo $is_edit ? esc_html__( 'Edit Exam', 'school-management-system' ) : esc_html__( 'Add New Exam', 'school-management-system' ); ?></h3>
 
 		<form method="post" action="">
 			<table class="form-table">
@@ -132,13 +133,14 @@ if ( 'edit' === $action && $exam_id ) {
 	</div>
 
 	<!-- Exams List -->
-	<h2><?php esc_html_e( 'Exams List', 'school-management-system' ); ?></h2>
+	<h3><?php esc_html_e( 'Exams List', 'school-management-system' ); ?></h3>
 
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
 				<th><?php esc_html_e( 'ID', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Exam Name', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Exam Code', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Date', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
@@ -150,10 +152,12 @@ if ( 'edit' === $action && $exam_id ) {
 			$exams = Exam::get_all( array(), 50 );
 			if ( ! empty( $exams ) ) {
 				foreach ( $exams as $exam ) {
+					$class = Classm::get( $exam->class_id );
 					?>
 					<tr>
 						<td><?php echo intval( $exam->id ); ?></td>
 						<td><?php echo esc_html( $exam->exam_name ); ?></td>
+						<td><?php echo $class ? esc_html( $class->class_name ) : ''; ?></td>
 						<td><?php echo esc_html( $exam->exam_code ); ?></td>
 						<td><?php echo esc_html( $exam->exam_date ); ?></td>
 						<td><?php echo esc_html( $exam->status ); ?></td>
@@ -168,7 +172,7 @@ if ( 'edit' === $action && $exam_id ) {
 			} else {
 				?>
 				<tr>
-					<td colspan="6"><?php esc_html_e( 'No exams found', 'school-management-system' ); ?></td>
+					<td colspan="7"><?php esc_html_e( 'No exams found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}

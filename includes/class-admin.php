@@ -85,8 +85,8 @@ class Admin {
 		// Attendance submenu.
 		add_submenu_page(
 			'sms-dashboard',
-			__( 'Attendance', 'school-management-system' ),
-			__( 'Attendance', 'school-management-system' ),
+			__( 'Notice', 'school-management-system' ),
+			__( 'Notice', 'school-management-system' ),
 			'manage_options',
 			'sms-attendance',
 			array( $this, 'display_attendance' )
@@ -141,57 +141,105 @@ class Admin {
 		<div class="wrap">
 			<h1><?php esc_html_e( 'School Management System Dashboard', 'school-management-system' ); ?></h1>
 			
-			<div class="sms-dashboard-cards">
-				<div class="sms-card">
-					<h3><?php esc_html_e( 'Total Students', 'school-management-system' ); ?></h3>
-					<p class="sms-card-value"><?php echo intval( Student::count() ); ?></p>
-				</div>
-				<div class="sms-card">
-					<h3><?php esc_html_e( 'Total Teachers', 'school-management-system' ); ?></h3>
-					<p class="sms-card-value"><?php echo intval( Teacher::count() ); ?></p>
-				</div>
-				<div class="sms-card">
-					<h3><?php esc_html_e( 'Total Classes', 'school-management-system' ); ?></h3>
-					<p class="sms-card-value"><?php echo intval( Classm::count() ); ?></p>
-				</div>
-				<div class="sms-card">
-					<h3><?php esc_html_e( 'Total Exams', 'school-management-system' ); ?></h3>
-					<p class="sms-card-value"><?php echo intval( Exam::count() ); ?></p>
+			<div id="dashboard-widgets-wrap">
+				<div id="dashboard-widgets" class="metabox-holder columns-2">
+					<div id="postbox-container-1" class="postbox-container">
+						<div class="meta-box-sortables">
+							<div class="postbox">
+								<h2 class="hndle"><span><?php esc_html_e( 'Statistics', 'school-management-system' ); ?></span></h2>
+								<div class="inside">
+									<div class="sms-dashboard-cards">
+										<div class="sms-card">
+											<h3><?php esc_html_e( 'Total Students', 'school-management-system' ); ?></h3>
+											<p class="sms-card-value"><?php echo intval( Student::count() ); ?></p>
+										</div>
+										<div class="sms-card">
+											<h3><?php esc_html_e( 'Total Teachers', 'school-management-system' ); ?></h3>
+											<p class="sms-card-value"><?php echo intval( Teacher::count() ); ?></p>
+										</div>
+										<div class="sms-card">
+											<h3><?php esc_html_e( 'Total Classes', 'school-management-system' ); ?></h3>
+											<p class="sms-card-value"><?php echo intval( Classm::count() ); ?></p>
+										</div>
+										<div class="sms-card">
+											<h3><?php esc_html_e( 'Total Exams', 'school-management-system' ); ?></h3>
+											<p class="sms-card-value"><?php echo intval( Exam::count() ); ?></p>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="postbox">
+								<h2 class="hndle"><span><?php esc_html_e( 'Upcoming Exams', 'school-management-system' ); ?></span></h2>
+								<div class="inside">
+									<table class="wp-list-table widefat fixed striped">
+										<thead>
+											<tr>
+												<th><?php esc_html_e( 'Exam Name', 'school-management-system' ); ?></th>
+												<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
+												<th><?php esc_html_e( 'Exam Date', 'school-management-system' ); ?></th>
+												<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
+											</tr>
+										</thead>
+										<tbody>
+											<?php
+											$exams = Exam::get_upcoming_exams( 5 );
+											if ( ! empty( $exams ) ) {
+												foreach ( $exams as $exam ) {
+													$class = Classm::get( $exam->class_id );
+													?>
+													<tr>
+														<td><?php echo esc_html( $exam->exam_name ); ?></td>
+														<td><?php echo $class ? esc_html( $class->class_name ) : ''; ?></td>
+														<td><?php echo esc_html( $exam->exam_date ); ?></td>
+														<td><?php echo esc_html( $exam->status ); ?></td>
+													</tr>
+													<?php
+												}
+											} else {
+												?>
+												<tr>
+													<td colspan="4"><?php esc_html_e( 'No upcoming exams', 'school-management-system' ); ?></td>
+												</tr>
+												<?php
+											}
+											?>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div id="postbox-container-2" class="postbox-container">
+						<div class="meta-box-sortables">
+							<?php
+							$uploaded_files = get_option( 'sms_attendance_uploaded_files', array() );
+							if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) :
+								?>
+							<div class="postbox">
+								<h2 class="hndle"><span><?php esc_html_e( 'Notice Files', 'school-management-system' ); ?></span></h2>
+								<div class="inside">
+									<ul style="margin-left: 0; padding-left: 0;">
+										<?php foreach ( $uploaded_files as $file ) : ?>
+											<li style="margin-bottom: 5px;">
+												<a href="<?php echo esc_url( $file['url'] ); ?>" target="_blank">
+													<span class="dashicons dashicons-media-document" style="vertical-align: middle; margin-right: 5px;"></span>
+													<?php echo esc_html( $file['notice_name'] ?? basename( $file['file'] ) ); ?>
+												</a>
+											</li>
+										<?php endforeach; ?>
+									</ul>
+									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-attendance' ) ); ?>" class="button">
+										<?php esc_html_e( 'Manage Notices', 'school-management-system' ); ?>
+									</a>
+								</div>
+							</div>
+							<?php endif; ?>
+						</div>
+					</div>
 				</div>
 			</div>
-
-			<h2><?php esc_html_e( 'Upcoming Exams', 'school-management-system' ); ?></h2>
-			<table class="wp-list-table widefat fixed striped">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Exam Name', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Exam Date', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php
-					$exams = Exam::get_upcoming_exams( 5 );
-					if ( ! empty( $exams ) ) {
-						foreach ( $exams as $exam ) {
-							?>
-							<tr>
-								<td><?php echo esc_html( $exam->exam_name ); ?></td>
-								<td><?php echo esc_html( $exam->exam_date ); ?></td>
-								<td><?php echo esc_html( $exam->status ); ?></td>
-							</tr>
-							<?php
-						}
-					} else {
-						?>
-						<tr>
-							<td colspan="3"><?php esc_html_e( 'No upcoming exams', 'school-management-system' ); ?></td>
-						</tr>
-						<?php
-					}
-					?>
-				</tbody>
-			</table>
 		</div>
 		<?php
 	}
@@ -353,7 +401,7 @@ class Admin {
 			exit;
 		}
 
-		// Handle attendance file upload.
+		// Handle notice file upload.
 		if ( isset( $_POST['sms_upload_attendance_file'] ) ) {
 			if ( ! isset( $_POST['sms_attendance_upload_nonce_field'] ) || ! wp_verify_nonce( $_POST['sms_attendance_upload_nonce_field'], 'sms_attendance_upload_nonce' ) ) {
 				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
@@ -373,7 +421,14 @@ class Admin {
 
 				if ( $movefile && ! isset( $movefile['error'] ) ) {
 					// The file was uploaded successfully.
-					update_option( 'sms_attendance_uploaded_file', $movefile );
+					$files = get_option( 'sms_attendance_uploaded_files', array() );
+					if ( ! is_array( $files ) ) {
+						$files = array();
+					}
+					$movefile['notice_name'] = sanitize_text_field( $_POST['notice_name'] ?? '' );
+					$movefile['upload_date'] = current_time( 'Y-m-d H:i:s' );
+					$files[] = $movefile;
+					update_option( 'sms_attendance_uploaded_files', $files );
 					wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=file_uploaded' ) );
 					exit;
 				} else {
@@ -387,7 +442,7 @@ class Admin {
 			}
 		}
 
-		// Handle attendance file deletion.
+		// Handle notice file deletion.
 		if ( isset( $_GET['action'] ) && 'delete_attendance_file' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-attendance' === $_GET['page'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_attendance_file_nonce' ) ) {
 				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
@@ -397,10 +452,15 @@ class Admin {
 				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
 			}
 
-			$uploaded_file = get_option( 'sms_attendance_uploaded_file' );
-			if ( $uploaded_file && ! empty( $uploaded_file['file'] ) ) {
-				wp_delete_file( $uploaded_file['file'] );
-				delete_option( 'sms_attendance_uploaded_file' );
+			$file_index = isset( $_GET['file_index'] ) ? intval( $_GET['file_index'] ) : -1;
+			$files      = get_option( 'sms_attendance_uploaded_files', array() );
+
+			if ( $file_index >= 0 && isset( $files[ $file_index ] ) ) {
+				if ( ! empty( $files[ $file_index ]['file'] ) ) {
+					wp_delete_file( $files[ $file_index ]['file'] );
+				}
+				unset( $files[ $file_index ] );
+				update_option( 'sms_attendance_uploaded_files', array_values( $files ) );
 			}
 
 			wp_redirect( admin_url( 'admin.php?page=sms-attendance&sms_message=file_deleted' ) );
