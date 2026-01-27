@@ -793,7 +793,7 @@ class Admin {
 				}
 
 				if ( $result && ! is_wp_error( $result ) ) {
-					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_added&student_id=' . $fee_data['student_id'] ) );
+					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_added' ) );
 				} else {
 					$error_msg = is_wp_error( $result ) ? $result->get_error_message() : 'Unknown error';
 					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_add_error&error=' . urlencode( $error_msg ) . '&student_id=' . $fee_data['student_id'] ) );

@@ -141,6 +141,10 @@ if ( isset( $_GET['sms_message'] ) ) {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="payment_date"><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?></label></th>
+					<td><input type="date" name="payment_date" id="payment_date" value="<?php echo ( $fee && ! empty( $fee->payment_date ) && strtotime( $fee->payment_date ) > 0 ) ? esc_attr( date( 'Y-m-d', strtotime( $fee->payment_date ) ) ) : ''; ?>" /></td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="remarks"><?php esc_html_e( 'Notes (optional)', 'school-management-system' ); ?></label></th>
 					<td><textarea name="remarks" id="remarks"><?php echo $fee ? esc_textarea( $fee->remarks ) : ''; ?></textarea></td>
 				</tr>
@@ -290,7 +294,6 @@ if ( isset( $_GET['sms_message'] ) ) {
 			}
 			$fees = Fee::get_all( $filters, 500 );
 			if ( ! empty( $fees ) ) {
-				$fees = array_reverse( $fees );
 				foreach ( $fees as $fee ) {
 					$student = Student::get( $fee->student_id );
 					$class = Classm::get( $fee->class_id );
