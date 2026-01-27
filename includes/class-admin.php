@@ -415,7 +415,7 @@ class Admin {
 			$student = Student::get( $fee->student_id );
 			$class   = Classm::get( $fee->class_id );
 			$settings = get_option( 'sms_settings' );
-			$currency = $settings['currency'] ?? 'Taka';
+			$currency = 'Taka';
 			$school_name = $settings['school_name'] ?? 'School Management System';
 
 			?>
