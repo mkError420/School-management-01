@@ -72,6 +72,7 @@ class Plugin {
 	public function run() {
 		$this->define_hooks();
 		$this->define_i18n();
+		$this->check_database_update();
 	}
 
 	/**
@@ -107,6 +108,18 @@ class Plugin {
 
 		add_action( 'wp_ajax_sms_search_data', 'sms_ajax_search_data' );
 		add_action( 'wp_ajax_nopriv_sms_search_data', 'sms_ajax_search_data' );
+	}
+
+	/**
+	 * Check for database updates.
+	 */
+	private function check_database_update() {
+		$installed_version = get_option( 'sms_db_version' );
+
+		if ( version_compare( $installed_version, $this->version, '<' ) ) {
+			require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+			Activator::activate();
+		}
 	}
 
 	/**

@@ -102,13 +102,23 @@ class Admin {
 			array( $this, 'display_student_attendance' )
 		);
 
-		// Fees submenu.
+		// Fees submenu (Dashboard).
 		add_submenu_page(
 			'sms-dashboard',
-			__( 'Fees', 'school-management-system' ),
+			__( 'Fees Dashboard', 'school-management-system' ),
 			__( 'Fees', 'school-management-system' ),
 			'manage_options',
 			'sms-fees',
+			array( $this, 'display_fees' )
+		);
+
+		// Add Fees submenu.
+		add_submenu_page(
+			'sms-dashboard',
+			__( 'Add Fees', 'school-management-system' ),
+			__( 'Add Fees', 'school-management-system' ),
+			'manage_options',
+			'sms-add-fees',
 			array( $this, 'display_fees' )
 		);
 
@@ -753,25 +763,59 @@ class Admin {
 				'student_id'   => intval( $_POST['student_id'] ?? 0 ),
 				'class_id'     => intval( $_POST['class_id'] ?? 0 ),
 				'fee_type'     => sanitize_text_field( $_POST['fee_type'] ?? '' ),
-				'amount'       => floatval( $_POST['amount'] ?? 0 ),
+				'amount'       => sanitize_text_field( $_POST['amount'] ?? '' ),
 				'due_date'     => sanitize_text_field( $_POST['due_date'] ?? '' ),
 				'payment_date' => sanitize_text_field( $_POST['payment_date'] ?? '' ),
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'pending' ),
 				'remarks'      => sanitize_textarea_field( $_POST['remarks'] ?? '' ),
 			);
 
+			// Handle empty dates.
+			if ( empty( $fee_data['due_date'] ) ) {
+				$fee_data['due_date'] = null;
+			}
+			if ( empty( $fee_data['payment_date'] ) ) {
+				$fee_data['payment_date'] = null;
+			}
+
 			if ( 'paid' === $fee_data['status'] && empty( $fee_data['payment_date'] ) ) {
 				$fee_data['payment_date'] = current_time( 'Y-m-d' );
 			}
 
 			if ( isset( $_POST['sms_add_fee'] ) ) {
-				Fee::add( $fee_data );
-				wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_added' ) );
+				$result = Fee::add( $fee_data );
+
+				// Self-healing: Check for missing column error and fix.
+				if ( is_wp_error( $result ) && strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false ) {
+					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+					Activator::activate();
+					$result = Fee::add( $fee_data );
+				}
+
+				if ( $result && ! is_wp_error( $result ) ) {
+					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_added&student_id=' . $fee_data['student_id'] ) );
+				} else {
+					$error_msg = is_wp_error( $result ) ? $result->get_error_message() : 'Unknown error';
+					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_add_error&error=' . urlencode( $error_msg ) . '&student_id=' . $fee_data['student_id'] ) );
+				}
 				exit;
 			} elseif ( isset( $_POST['sms_edit_fee'] ) ) {
 				$fee_id = intval( $_POST['fee_id'] ?? 0 );
-				Fee::update( $fee_id, $fee_data );
-				wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_updated' ) );
+				$result = Fee::update( $fee_id, $fee_data );
+
+				// Self-healing: Check for missing column error and fix.
+				if ( is_wp_error( $result ) && strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false ) {
+					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+					Activator::activate();
+					$result = Fee::update( $fee_id, $fee_data );
+				}
+
+				if ( $result !== false && ! is_wp_error( $result ) ) {
+					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_updated&student_id=' . $fee_data['student_id'] ) );
+				} else {
+					$error_msg = is_wp_error( $result ) ? $result->get_error_message() : 'Unknown error';
+					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_update_error&error=' . urlencode( $error_msg ) . '&student_id=' . $fee_data['student_id'] ) );
+				}
 				exit;
 			}
 		}

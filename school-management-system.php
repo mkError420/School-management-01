@@ -3,7 +3,7 @@
  * Plugin Name: School Management System
  * Plugin URI: https://example.com/school-management-system
  * Description: A complete school management system for WordPress with student, teacher, class, and exam management.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Your Name
  * Author URI: https://example.com
  * License: GPL-2.0+
@@ -20,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define plugin constants.
-define( 'SMS_VERSION', '1.0.0' );
+define( 'SMS_VERSION', '1.0.1' );
 define( 'SMS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SMS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SMS_PLUGIN_FILE', __FILE__ );

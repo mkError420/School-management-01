@@ -19,15 +19,20 @@ class Fee {
 	 * @return int|false Fee ID on success, false on failure.
 	 */
 	public static function add( $fee_data ) {
-		if ( empty( $fee_data['student_id'] ) || empty( $fee_data['class_id'] ) || empty( $fee_data['fee_type'] ) || empty( $fee_data['amount'] ) ) {
-			return false;
+		if ( empty( $fee_data['student_id'] ) || empty( $fee_data['class_id'] ) || empty( $fee_data['fee_type'] ) || ! isset( $fee_data['amount'] ) || ! is_numeric( $fee_data['amount'] ) ) {
+			return new \WP_Error( 'missing_fields', __( 'Missing required fields or invalid amount.', 'school-management-system' ) );
 		}
 
 		if ( empty( $fee_data['status'] ) ) {
 			$fee_data['status'] = 'pending';
 		}
 
-		return Database::insert( 'fees', $fee_data );
+		$result = Database::insert( 'fees', $fee_data );
+		if ( false === $result ) {
+			global $wpdb;
+			return new \WP_Error( 'db_error', $wpdb->last_error );
+		}
+		return $result;
 	}
 
 	/**
@@ -64,7 +69,12 @@ class Fee {
 			return false;
 		}
 
-		return Database::update( 'fees', $fee_data, array( 'id' => $fee_id ) );
+		$result = Database::update( 'fees', $fee_data, array( 'id' => $fee_id ) );
+		if ( false === $result ) {
+			global $wpdb;
+			return new \WP_Error( 'db_error', $wpdb->last_error );
+		}
+		return $result;
 	}
 
 	/**
@@ -166,5 +176,59 @@ class Fee {
 		}
 
 		return self::update( $fee_id, array( 'status' => 'paid', 'payment_date' => $payment_date ) );
+	}
+
+	/**
+	 * Get total amount by status.
+	 *
+	 * @param string $status Fee status.
+	 * @return float Total amount.
+	 */
+	public static function get_total_amount_by_status( $status ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_fees';
+
+		$total = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT SUM(amount) FROM $table_name WHERE status = %s",
+				$status
+			)
+		);
+
+		return floatval( $total ?? 0 );
+	}
+
+	/**
+	 * Get upcoming due fees.
+	 *
+	 * @param int $limit Number of records.
+	 * @return array Array of fee objects.
+	 */
+	public static function get_upcoming_due_fees( $limit = 5 ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_fees';
+		$today = current_time( 'Y-m-d' );
+
+		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status = 'pending' AND due_date >= %s ORDER BY due_date ASC LIMIT %d", $today, $limit );
+
+		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Get recent payments.
+	 *
+	 * @param int $limit Number of records.
+	 * @return array Array of fee objects.
+	 */
+	public static function get_recent_payments( $limit = 5 ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_fees';
+
+		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status = 'paid' ORDER BY payment_date DESC LIMIT %d", $limit );
+
+		return $wpdb->get_results( $sql );
 	}
 }
