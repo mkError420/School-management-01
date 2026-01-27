@@ -336,12 +336,21 @@ class Admin {
 	 * Display settings page.
 	 */
 	public function display_settings() {
+		$settings = get_option( 'sms_settings', array() );
+		$message = '';
+		if ( isset( $_GET['sms_message'] ) && 'settings_saved' === $_GET['sms_message'] ) {
+			$message = __( 'Settings saved successfully.', 'school-management-system' );
+		}
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'School Management System Settings', 'school-management-system' ); ?></h1>
 			
+			<?php if ( ! empty( $message ) ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+			<?php endif; ?>
+
 			<form method="post" action="">
-				<?php wp_nonce_field( 'sms_settings_nonce' ); ?>
+				<?php wp_nonce_field( 'sms_settings_nonce', 'sms_settings_nonce_field' ); ?>
 				
 				<table class="form-table">
 					<tr>
@@ -349,7 +358,7 @@ class Admin {
 							<label for="school_name"><?php esc_html_e( 'School Name', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="text" name="school_name" id="school_name" class="regular-text" value="" />
+							<input type="text" name="school_name" id="school_name" class="regular-text" value="<?php echo esc_attr( $settings['school_name'] ?? '' ); ?>" />
 						</td>
 					</tr>
 					<tr>
@@ -357,7 +366,7 @@ class Admin {
 							<label for="school_email"><?php esc_html_e( 'School Email', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="email" name="school_email" id="school_email" class="regular-text" value="" />
+							<input type="email" name="school_email" id="school_email" class="regular-text" value="<?php echo esc_attr( $settings['school_email'] ?? '' ); ?>" />
 						</td>
 					</tr>
 					<tr>
@@ -365,7 +374,7 @@ class Admin {
 							<label for="school_phone"><?php esc_html_e( 'School Phone', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="text" name="school_phone" id="school_phone" class="regular-text" value="" />
+							<input type="text" name="school_phone" id="school_phone" class="regular-text" value="<?php echo esc_attr( $settings['school_phone'] ?? '' ); ?>" />
 						</td>
 					</tr>
 					<tr>
@@ -373,12 +382,12 @@ class Admin {
 							<label for="passing_marks"><?php esc_html_e( 'Passing Marks', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="number" name="passing_marks" id="passing_marks" class="small-text" value="" />
+							<input type="number" name="passing_marks" id="passing_marks" class="small-text" value="<?php echo esc_attr( $settings['passing_marks'] ?? '' ); ?>" />
 						</td>
 					</tr>
 				</table>
 				
-				<?php submit_button(); ?>
+				<?php submit_button( __( 'Save Settings', 'school-management-system' ), 'primary', 'sms_save_settings' ); ?>
 			</form>
 		</div>
 		<?php
