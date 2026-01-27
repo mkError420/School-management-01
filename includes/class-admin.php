@@ -388,6 +388,127 @@ class Admin {
 	 * Handle form submissions.
 	 */
 	public function handle_form_submission() {
+		// Handle fee voucher download.
+		if ( isset( $_GET['action'] ) && 'sms_download_fee_voucher' === $_GET['action'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_download_fee_voucher_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			// Clean output buffer to remove any PHP warnings.
+			if ( ob_get_length() ) {
+				ob_clean();
+			}
+			// Suppress display of errors for the voucher output.
+			@ini_set( 'display_errors', 0 );
+
+			$fee_id = intval( $_GET['id'] ?? 0 );
+			$fee = Fee::get( $fee_id );
+
+			if ( ! $fee ) {
+				wp_die( esc_html__( 'Fee record not found.', 'school-management-system' ) );
+			}
+
+			$student = Student::get( $fee->student_id );
+			$class   = Classm::get( $fee->class_id );
+			$settings = get_option( 'sms_settings' );
+			$currency = $settings['currency'] ?? 'Taka';
+			$school_name = $settings['school_name'] ?? 'School Management System';
+
+			?>
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title><?php esc_html_e( 'Fee Voucher', 'school-management-system' ); ?> - <?php echo intval( $fee->id ); ?></title>
+				<style>
+					body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+					.voucher-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+					.header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+					.header h1 { margin: 0; color: #333; }
+					.header p { margin: 5px 0 0; color: #666; }
+					.voucher-info { display: flex; justify-content: space-between; margin-bottom: 30px; }
+					.info-group h3 { margin: 0 0 10px; font-size: 16px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+					.info-group p { margin: 5px 0; font-size: 14px; }
+					.fee-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+					.fee-table th, .fee-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+					.fee-table th { background-color: #f9f9f9; font-weight: bold; }
+					.total-row td { font-weight: bold; font-size: 16px; }
+					.footer { margin-top: 50px; display: flex; justify-content: space-between; text-align: center; }
+					.signature-line { border-top: 1px solid #333; width: 200px; padding-top: 5px; }
+					.print-btn { display: block; width: 100%; padding: 15px; background: #333; color: #fff; text-align: center; text-decoration: none; margin-bottom: 20px; font-weight: bold; }
+					@media print {
+						body { background: #fff; padding: 0; }
+						.voucher-container { box-shadow: none; border: none; padding: 0; }
+						.print-btn { display: none; }
+					}
+				</style>
+			</head>
+			<body>
+				<div class="voucher-container">
+					<a href="#" onclick="window.print(); return false;" class="print-btn"><?php esc_html_e( 'Click here to Print / Save as PDF', 'school-management-system' ); ?></a>
+					
+					<div class="header">
+						<h1><?php echo esc_html( $school_name ); ?></h1>
+						<p><?php esc_html_e( 'Fee Payment Voucher', 'school-management-system' ); ?></p>
+					</div>
+
+					<div class="voucher-info">
+						<div class="info-group">
+							<h3><?php esc_html_e( 'Student Details', 'school-management-system' ); ?></h3>
+							<p><strong><?php esc_html_e( 'Name', 'school-management-system' ); ?>:</strong> <?php echo $student ? esc_html( $student->first_name . ' ' . $student->last_name ) : 'N/A'; ?></p>
+							<p><strong><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?>:</strong> <?php echo $student ? esc_html( $student->roll_number ) : 'N/A'; ?></p>
+							<p><strong><?php esc_html_e( 'Class', 'school-management-system' ); ?>:</strong> <?php echo $class ? esc_html( $class->class_name ) : 'N/A'; ?></p>
+						</div>
+						<div class="info-group" style="text-align: right;">
+							<h3><?php esc_html_e( 'Voucher Details', 'school-management-system' ); ?></h3>
+							<p><strong><?php esc_html_e( 'Voucher No', 'school-management-system' ); ?>:</strong> #<?php echo intval( $fee->id ); ?></p>
+							<p><strong><?php esc_html_e( 'Date', 'school-management-system' ); ?>:</strong> <?php echo date_i18n( get_option( 'date_format' ), strtotime( current_time( 'Y-m-d' ) ) ); ?></p>
+							<p><strong><?php esc_html_e( 'Status', 'school-management-system' ); ?>:</strong> <span style="text-transform: uppercase;"><?php echo esc_html( $fee->status ); ?></span></p>
+						</div>
+					</div>
+
+					<table class="fee-table">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Description', 'school-management-system' ); ?></th>
+								<th><?php esc_html_e( 'Due Date', 'school-management-system' ); ?></th>
+								<th style="text-align: right;"><?php esc_html_e( 'Amount', 'school-management-system' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><?php echo esc_html( $fee->fee_type ); ?></td>
+								<td><?php echo esc_html( $fee->due_date ); ?></td>
+								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount, 2 ) ); ?></td>
+							</tr>
+							<tr class="total-row">
+								<td colspan="2" style="text-align: right;"><?php esc_html_e( 'Total', 'school-management-system' ); ?></td>
+								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount, 2 ) ); ?></td>
+							</tr>
+						</tbody>
+					</table>
+
+					<div class="footer">
+						<div class="signature-line">
+							<?php esc_html_e( 'Depositor Signature', 'school-management-system' ); ?>
+						</div>
+						<div class="signature-line">
+							<?php esc_html_e( 'Authorized Signature', 'school-management-system' ); ?>
+						</div>
+					</div>
+				</div>
+				<script>
+					window.onload = function() { window.print(); }
+				</script>
+			</body>
+			</html>
+			<?php
+			exit;
+		}
+
 		// Handle student deletion.
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-students' === $_GET['page'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_student_nonce' ) ) {
@@ -435,6 +556,13 @@ class Admin {
 			if ( ! current_user_can( 'manage_options' ) ) {
 				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
 			}
+
+			// Clean output buffer to remove any PHP warnings generated during bootstrap.
+			if ( ob_get_length() ) {
+				ob_clean();
+			}
+			// Suppress display of errors for the voucher output.
+			@ini_set( 'display_errors', 0 );
 
 			$fee_id = intval( $_GET['id'] ?? 0 );
 			if ( $fee_id > 0 ) {

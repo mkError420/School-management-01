@@ -57,6 +57,25 @@ if ( isset( $_GET['sms_message'] ) ) {
 }
 
 ?>
+<style>
+.fee-details-row td {
+	background-color: #f9f9f9;
+	padding: 20px !important;
+}
+.fee-details-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.fee-details-list li {
+	margin-bottom: 8px;
+}
+.fee-details-list strong {
+	display: inline-block;
+	width: 150px;
+	color: #555;
+}
+</style>
 <div class="wrap">
 	<?php if ( $show_dashboard ) : ?>
 		<h1>
@@ -266,10 +285,6 @@ if ( isset( $_GET['sms_message'] ) ) {
 				<th><?php esc_html_e( 'ID', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Fee Type', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Amount', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Date', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
@@ -298,17 +313,17 @@ if ( isset( $_GET['sms_message'] ) ) {
 					$student = Student::get( $fee->student_id );
 					$class = Classm::get( $fee->class_id );
 					$delete_url = wp_nonce_url( admin_url( 'admin.php?page=sms-fees&action=delete&id=' . $fee->id ), 'sms_delete_fee_nonce', '_wpnonce' );
+					$download_url = wp_nonce_url( admin_url( 'admin.php?action=sms_download_fee_voucher&id=' . $fee->id ), 'sms_download_fee_voucher_nonce', '_wpnonce' );
 					?>
 					<tr>
 						<td><?php echo intval( $fee->id ); ?></td>
 						<td><?php echo $student ? esc_html( $student->first_name . ' ' . $student->last_name ) : 'N/A'; ?></td>
 						<td><?php echo $class ? esc_html( $class->class_name ) : 'N/A'; ?></td>
-						<td><?php echo esc_html( $fee->fee_type ); ?></td>
-						<td><?php echo esc_html( $fee->amount ); ?></td>
-						<td><?php echo esc_html( $fee->due_date ); ?></td>
-						<td><?php echo esc_html( $fee->payment_date ); ?></td>
 						<td><?php echo esc_html( $fee->status ); ?></td>
 						<td>
+							<button class="button button-small toggle-fee-details-btn" data-target="#fee-details-<?php echo intval( $fee->id ); ?>">
+								<?php esc_html_e( 'Details', 'school-management-system' ); ?>
+							</button>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&action=edit&id=' . $fee->id ) ); ?>">
 								<?php esc_html_e( 'Edit', 'school-management-system' ); ?>
 							</a>
@@ -316,12 +331,32 @@ if ( isset( $_GET['sms_message'] ) ) {
 							<a href="<?php echo esc_url( $delete_url ); ?>" onclick="return confirm('<?php esc_attr_e( 'Are you sure?', 'school-management-system' ); ?>')"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></a>
 						</td>
 					</tr>
+					<tr id="fee-details-<?php echo intval( $fee->id ); ?>" class="fee-details-row" style="display: none;">
+						<td colspan="5">
+							<ul class="fee-details-list">
+								<li><strong><?php esc_html_e( 'ID', 'school-management-system' ); ?>:</strong> <?php echo intval( $fee->id ); ?></li>
+								<li><strong><?php esc_html_e( 'Student Name', 'school-management-system' ); ?>:</strong> <?php echo $student ? esc_html( $student->first_name . ' ' . $student->last_name ) : 'N/A'; ?></li>
+								<li><strong><?php esc_html_e( 'Class', 'school-management-system' ); ?>:</strong> <?php echo $class ? esc_html( $class->class_name ) : 'N/A'; ?></li>
+								<li><strong><?php esc_html_e( 'Fee Type', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->fee_type ); ?></li>
+								<li><strong><?php esc_html_e( 'Amount', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->amount ); ?></li>
+								<li><strong><?php esc_html_e( 'Due Date', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->due_date ); ?></li>
+								<li><strong><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->payment_date ); ?></li>
+								<li><strong><?php esc_html_e( 'Status', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->status ); ?></li>
+								<li><strong><?php esc_html_e( 'Notes', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $fee->remarks ); ?></li>
+							</ul>
+							<div style="margin-top: 15px;">
+								<a href="<?php echo esc_url( $download_url ); ?>" class="button button-secondary" target="_blank">
+									<span class="dashicons dashicons-pdf" style="vertical-align: middle;"></span> <?php esc_html_e( 'Download Voucher', 'school-management-system' ); ?>
+								</a>
+							</div>
+						</td>
+					</tr>
 					<?php
 				}
 			} else {
 				?>
 				<tr>
-					<td colspan="9"><?php esc_html_e( 'No fees found', 'school-management-system' ); ?></td>
+					<td colspan="5"><?php esc_html_e( 'No fees found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
@@ -329,4 +364,14 @@ if ( isset( $_GET['sms_message'] ) ) {
 		</tbody>
 	</table>
 	<?php endif; ?>
+
+	<script>
+	jQuery(document).ready(function($) {
+		$('.toggle-fee-details-btn').on('click', function(e) {
+			e.preventDefault();
+			var targetRow = $(this).data('target');
+			$(targetRow).toggle();
+		});
+	});
+	</script>
 </div>
