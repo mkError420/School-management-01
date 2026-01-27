@@ -204,7 +204,9 @@ class Student {
 			WHERE first_name LIKE %s 
 			OR last_name LIKE %s 
 			OR email LIKE %s
+			OR roll_number LIKE %s
 			ORDER BY first_name ASC",
+			$search_term,
 			$search_term,
 			$search_term,
 			$search_term

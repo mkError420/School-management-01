@@ -87,6 +87,17 @@ if ( isset( $_GET['sms_message'] ) ) {
 
 	<!-- Enrollments List -->
 	<h2><?php esc_html_e( 'Enrollments List', 'school-management-system' ); ?></h2>
+
+	<form method="get" action="" style="margin-bottom: 20px; float: right;">
+		<input type="hidden" name="page" value="sms-enrollments" />
+		<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by student or class...', 'school-management-system' ); ?>" />
+		<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+		<?php if ( ! empty( $_GET['s'] ) ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+		<?php endif; ?>
+	</form>
+	<div style="clear: both;"></div>
+
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
@@ -100,7 +111,12 @@ if ( isset( $_GET['sms_message'] ) ) {
 		</thead>
 		<tbody>
 			<?php
-			$enrollments = Enrollment::get_all( array(), 50 );
+			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			if ( ! empty( $search_term ) ) {
+				$enrollments = Enrollment::search( $search_term );
+			} else {
+				$enrollments = Enrollment::get_all( array(), 50 );
+			}
 			if ( ! empty( $enrollments ) ) {
 				foreach ( $enrollments as $enrollment ) {
 					$student = Student::get( $enrollment->student_id );

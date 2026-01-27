@@ -129,4 +129,30 @@ class Enrollment {
 	public static function is_enrolled( $student_id, $class_id ) {
 		return Database::exists( 'enrollments', array( 'student_id' => $student_id, 'class_id' => $class_id, 'status' => 'enrolled' ) );
 	}
+
+	/**
+	 * Search enrollments.
+	 *
+	 * @param string $search_term Search term.
+	 * @return array Array of matching enrollments.
+	 */
+	public static function search( $search_term ) {
+		global $wpdb;
+
+		$enrollments_table = $wpdb->prefix . 'sms_enrollments';
+		$students_table    = $wpdb->prefix . 'sms_students';
+		$classes_table     = $wpdb->prefix . 'sms_classes';
+		$search_term       = '%' . $wpdb->esc_like( $search_term ) . '%';
+
+		$sql = $wpdb->prepare(
+			"SELECT e.* FROM $enrollments_table e
+			LEFT JOIN $students_table s ON e.student_id = s.id
+			LEFT JOIN $classes_table c ON e.class_id = c.id
+			WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR c.class_name LIKE %s
+			ORDER BY e.id DESC",
+			$search_term, $search_term, $search_term
+		);
+
+		return $wpdb->get_results( $sql );
+	}
 }

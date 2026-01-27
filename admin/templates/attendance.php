@@ -67,10 +67,28 @@ if ( isset( $_GET['sms_message'] ) ) {
 	<!-- Display Uploaded File -->
 	<?php
 	$uploaded_files = get_option( 'sms_attendance_uploaded_files', array() );
-	if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) :
+	$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+
+	if ( ! empty( $search_term ) && ! empty( $uploaded_files ) ) {
+		$uploaded_files = array_filter( $uploaded_files, function( $file ) use ( $search_term ) {
+			return stripos( $file['notice_name'], $search_term ) !== false || stripos( basename( $file['file'] ), $search_term ) !== false;
+		} );
+	}
+
+	if ( ! empty( get_option( 'sms_attendance_uploaded_files', array() ) ) ) :
 		?>
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
 		<h2><?php esc_html_e( 'Current Notice Files', 'school-management-system' ); ?></h2>
+		<form method="get" action="" style="margin-bottom: 20px; float: right;">
+			<input type="hidden" name="page" value="sms-attendance" />
+			<input type="search" name="s" value="<?php echo esc_attr( $search_term ); ?>" placeholder="<?php esc_attr_e( 'Search notices...', 'school-management-system' ); ?>" />
+			<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+			<?php if ( ! empty( $search_term ) ) : ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-attendance' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+			<?php endif; ?>
+		</form>
+		<div style="clear: both;"></div>
+		<?php if ( ! empty( $uploaded_files ) ) : ?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
 				<tr>
@@ -92,6 +110,9 @@ if ( isset( $_GET['sms_message'] ) ) {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php else : ?>
+			<p><?php esc_html_e( 'No notices found matching your search.', 'school-management-system' ); ?></p>
+		<?php endif; ?>
 	</div>
 	<?php endif; ?>
 

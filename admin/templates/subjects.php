@@ -86,6 +86,16 @@ if ( 'edit' === $action && $subject_id ) {
 	<!-- Subjects List -->
 	<h2><?php esc_html_e( 'Subjects List', 'school-management-system' ); ?></h2>
 
+	<form method="get" action="" style="margin-bottom: 20px; float: right;">
+		<input type="hidden" name="page" value="sms-subjects" />
+		<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search subjects...', 'school-management-system' ); ?>" />
+		<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+		<?php if ( ! empty( $_GET['s'] ) ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-subjects' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+		<?php endif; ?>
+	</form>
+	<div style="clear: both;"></div>
+
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
@@ -98,7 +108,12 @@ if ( 'edit' === $action && $subject_id ) {
 		</thead>
 		<tbody>
 			<?php
-			$subjects = Subject::get_all( array(), 50 );
+			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			if ( ! empty( $search_term ) ) {
+				$subjects = Subject::search( $search_term );
+			} else {
+				$subjects = Subject::get_all( array(), 50 );
+			}
 			if ( ! empty( $subjects ) ) {
 				foreach ( $subjects as $subject ) {
 					?>

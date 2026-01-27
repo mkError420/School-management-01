@@ -135,6 +135,16 @@ if ( 'edit' === $action && $exam_id ) {
 	<!-- Exams List -->
 	<h3><?php esc_html_e( 'Exams List', 'school-management-system' ); ?></h3>
 
+	<form method="get" action="" style="margin-bottom: 20px; float: right;">
+		<input type="hidden" name="page" value="sms-exams" />
+		<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search exams...', 'school-management-system' ); ?>" />
+		<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+		<?php if ( ! empty( $_GET['s'] ) ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-exams' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+		<?php endif; ?>
+	</form>
+	<div style="clear: both;"></div>
+
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
@@ -149,7 +159,12 @@ if ( 'edit' === $action && $exam_id ) {
 		</thead>
 		<tbody>
 			<?php
-			$exams = Exam::get_all( array(), 50 );
+			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			if ( ! empty( $search_term ) ) {
+				$exams = Exam::search( $search_term );
+			} else {
+				$exams = Exam::get_all( array(), 50 );
+			}
 			if ( ! empty( $exams ) ) {
 				foreach ( $exams as $exam ) {
 					$class = Classm::get( $exam->class_id );

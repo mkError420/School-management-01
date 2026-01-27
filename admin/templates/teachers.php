@@ -175,6 +175,16 @@ $status         = $is_edit ? $teacher->status : 'active';
 		<?php esc_html_e( 'Teachers List', 'school-management-system' ); ?>
 	</h2>
 
+	<form method="get" action="" style="margin-bottom: 20px; float: right;">
+		<input type="hidden" name="page" value="sms-teachers" />
+		<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by name, email, or ID...', 'school-management-system' ); ?>" />
+		<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+		<?php if ( ! empty( $_GET['s'] ) ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-teachers' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+		<?php endif; ?>
+	</form>
+	<div style="clear: both;"></div>
+
 	<table class="wp-list-table widefat fixed striped teachers-table">
 		<thead>
 			<tr>
@@ -190,7 +200,12 @@ $status         = $is_edit ? $teacher->status : 'active';
 		</thead>
 		<tbody>
 			<?php
-			$teachers = Teacher::get_all( array(), 50 );
+			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			if ( ! empty( $search_term ) ) {
+				$teachers = Teacher::search( $search_term );
+			} else {
+				$teachers = Teacher::get_all( array(), 50 );
+			}
 			if ( ! empty( $teachers ) ) {
 				foreach ( $teachers as $teacher ) {
 					?>
