@@ -166,7 +166,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 					<td><input type="number" name="amount" id="amount" step="0.01" required value="<?php echo $fee ? esc_attr( $fee->amount ) : ''; ?>" /></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="due_date"><?php esc_html_e( 'Due Date', 'school-management-system' ); ?></label></th>
+					<th scope="row"><label for="due_date"><?php esc_html_e( 'Date', 'school-management-system' ); ?></label></th>
 					<td><input type="date" name="due_date" id="due_date" required value="<?php echo $fee ? esc_attr( $fee->due_date ) : ''; ?>" /></td>
 				</tr>
 				<tr>
@@ -207,15 +207,17 @@ if ( isset( $_GET['sms_message'] ) ) {
 				<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Fee Type', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Amount', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Due Date', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Date', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
 			<?php
-			$fees = Fee::get_all( array( 'orderby' => 'id', 'order' => 'ASC' ), 500 );
+			$fees = Fee::get_all( array( 'orderby' => 'id', 'order' => 'DESC' ), 500 );
 			if ( ! empty( $fees ) ) {
+				$fees = array_reverse( $fees );
 				foreach ( $fees as $fee ) {
 					$student = Student::get( $fee->student_id );
 					$class = Classm::get( $fee->class_id );
@@ -228,6 +230,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 						<td><?php echo esc_html( $fee->fee_type ); ?></td>
 						<td><?php echo esc_html( $fee->amount ); ?></td>
 						<td><?php echo esc_html( $fee->due_date ); ?></td>
+						<td><?php echo esc_html( $fee->payment_date ); ?></td>
 						<td><?php echo esc_html( $fee->status ); ?></td>
 						<td>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&action=edit&id=' . $fee->id ) ); ?>">
@@ -242,7 +245,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 			} else {
 				?>
 				<tr>
-					<td colspan="8"><?php esc_html_e( 'No fees found', 'school-management-system' ); ?></td>
+					<td colspan="9"><?php esc_html_e( 'No fees found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
