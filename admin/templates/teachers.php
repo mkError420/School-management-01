@@ -123,7 +123,7 @@ $status         = $is_edit ? $teacher->status : 'active';
 							<label for="employee_id"><?php esc_html_e( 'Employee ID', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="text" name="employee_id" id="employee_id" class="regular-text" value="<?php echo esc_attr( $employee_id ); ?>" required>
+							<input type="text" name="employee_id" id="employee_id" class="regular-text" value="<?php echo esc_attr( $employee_id ); ?>" placeholder="<?php esc_attr_e( 'Auto-generated if empty', 'school-management-system' ); ?>">
 						</td>
 					</tr>
 					<tr>

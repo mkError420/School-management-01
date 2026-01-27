@@ -121,10 +121,10 @@ if ( isset( $_GET['sms_message'] ) ) {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="roll_number"><?php esc_html_e( 'Roll Number *', 'school-management-system' ); ?></label>
+						<label for="roll_number"><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></label>
 					</th>
 					<td>
-						<input type="text" name="roll_number" id="roll_number" required value="<?php echo $student ? esc_attr( $student->roll_number ) : ''; ?>" />
+						<input type="text" name="roll_number" id="roll_number" value="<?php echo $student ? esc_attr( $student->roll_number ) : ''; ?>" placeholder="<?php esc_attr_e( 'Auto-generated if empty', 'school-management-system' ); ?>" />
 					</td>
 				</tr>
 				<tr>

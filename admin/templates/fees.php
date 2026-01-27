@@ -309,6 +309,19 @@ if ( isset( $_GET['sms_message'] ) ) {
 			}
 			$fees = Fee::get_all( $filters, 500 );
 			if ( ! empty( $fees ) ) {
+				// Sort fees by class name.
+				$all_classes = Classm::get_all( array(), 1000 );
+				$class_map = array();
+				foreach ( $all_classes as $c ) {
+					$class_map[ $c->id ] = $c->class_name;
+				}
+				usort( $fees, function( $a, $b ) use ( $class_map ) {
+					$name_a = $class_map[ $a->class_id ] ?? '';
+					$name_b = $class_map[ $b->class_id ] ?? '';
+					$cmp = strcasecmp( $name_a, $name_b );
+					return 0 === $cmp ? $b->id - $a->id : $cmp;
+				} );
+
 				foreach ( $fees as $fee ) {
 					$student = Student::get( $fee->student_id );
 					$class = Classm::get( $fee->class_id );

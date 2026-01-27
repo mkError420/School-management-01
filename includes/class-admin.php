@@ -668,6 +668,11 @@ class Admin {
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'active' ),
 			);
 
+			// Auto-generate Employee ID if empty.
+			if ( empty( $teacher_data['employee_id'] ) ) {
+				$teacher_data['employee_id'] = 'TCH-' . date( 'Y' ) . '-' . str_pad( Teacher::count() + 1, 3, '0', STR_PAD_LEFT );
+			}
+
 			if ( isset( $_POST['sms_add_teacher'] ) ) {
 				$result = Teacher::add( $teacher_data );
 				if ( $result && ! is_wp_error( $result ) ) {
@@ -716,6 +721,11 @@ class Admin {
 			);
 
 			$class_id = intval( $_POST['class_id'] ?? 0 );
+
+			// Auto-generate Roll Number if empty.
+			if ( empty( $student_data['roll_number'] ) ) {
+				$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
+			}
 
 			if ( isset( $_POST['sms_add_student'] ) ) {
 				$result = Student::add( $student_data );
