@@ -474,14 +474,14 @@ class Admin {
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Description', 'school-management-system' ); ?></th>
-								<th><?php esc_html_e( 'Due Date', 'school-management-system' ); ?></th>
+								<th><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?></th>
 								<th style="text-align: right;"><?php esc_html_e( 'Amount', 'school-management-system' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
 								<td><?php echo esc_html( $fee->fee_type ); ?></td>
-								<td><?php echo esc_html( $fee->due_date ); ?></td>
+								<td><?php echo esc_html( $fee->payment_date ); ?></td>
 								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount, 2 ) ); ?></td>
 							</tr>
 							<tr class="total-row">
