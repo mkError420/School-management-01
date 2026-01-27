@@ -112,16 +112,6 @@ class Admin {
 			array( $this, 'display_fees' )
 		);
 
-		// Add Fees submenu.
-		add_submenu_page(
-			'sms-dashboard',
-			__( 'Add Fees', 'school-management-system' ),
-			__( 'Add Fees', 'school-management-system' ),
-			'manage_options',
-			'sms-add-fees',
-			array( $this, 'display_fees' )
-		);
-
 		// Exams submenu.
 		add_submenu_page(
 			'sms-dashboard',

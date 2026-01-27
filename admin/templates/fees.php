@@ -32,8 +32,8 @@ if ( 'edit' === $action && $fee_id ) {
 	$is_edit = true;
 }
 
-$show_form = ( 'sms-add-fees' === $current_page || $is_edit );
-$show_dashboard = ( 'sms-fees' === $current_page && ! $is_edit );
+$show_form = ( 'add' === $action || $is_edit );
+$show_dashboard = ( 'sms-fees' === $current_page && ! $show_form );
 
 $message = '';
 $message_class = 'notice-success';
@@ -61,7 +61,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 	<?php if ( $show_dashboard ) : ?>
 		<h1>
 			<?php esc_html_e( 'Fees Dashboard', 'school-management-system' ); ?>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-add-fees' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New Fee', 'school-management-system' ); ?></a>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New Fee', 'school-management-system' ); ?></a>
 		</h1>
 		<p><?php esc_html_e( 'Here you can view, search, and manage all student fee records. Use filters to sort by class, payment status, or due dates. Click a fee entry to view or edit details.', 'school-management-system' ); ?></p>
 	<?php elseif ( $show_form ) : ?>
@@ -167,13 +167,13 @@ if ( isset( $_GET['sms_message'] ) ) {
 		<div class="sms-card" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
 			<h3 style="margin-top: 0;"><?php esc_html_e( 'Total Fees Collected', 'school-management-system' ); ?></h3>
 			<p class="sms-card-value" style="font-size: 24px; font-weight: bold; margin: 0; color: #46b450;">
-				<?php echo esc_html( get_option( 'sms_settings' )['currency'] ?? '$' ) . number_format( Fee::get_total_amount_by_status( 'paid' ), 2 ); ?>
+				<?php echo 'Taka:-  ' . number_format( Fee::get_total_amount_by_status( 'paid' ), 2 ); ?>
 			</p>
 		</div>
 		<div class="sms-card" style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
 			<h3 style="margin-top: 0;"><?php esc_html_e( 'Pending Fees', 'school-management-system' ); ?></h3>
 			<p class="sms-card-value" style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3232;">
-				<?php echo esc_html( get_option( 'sms_settings' )['currency'] ?? '$' ) . number_format( Fee::get_total_amount_by_status( 'pending' ), 2 ); ?>
+				<?php echo 'Taka:-  ' . number_format( Fee::get_total_amount_by_status( 'pending' ), 2 ); ?>
 			</p>
 		</div>
 	</div>

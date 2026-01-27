@@ -269,7 +269,7 @@ class Activator {
 		if ( ! get_option( 'sms_settings' ) ) {
 			$settings = array(
 				'academic_year'   => current_time( 'Y' ),
-				'currency'        => 'USD',
+				'currency'        => 'Taka (TK)',
 				'school_name'     => 'My School',
 				'school_email'    => get_option( 'admin_email' ),
 				'school_phone'    => '',
