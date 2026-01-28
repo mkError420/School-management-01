@@ -156,61 +156,83 @@ class Admin {
 				gap: 20px;
 			}
 			.sms-card {
-				background: linear-gradient(135deg, #6e8efb, #a777e3);
-				color: white;
+				background: #ffffff;
+				color: #444;
 				padding: 25px;
-				border-radius: 12px;
-				box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+				border-radius: 15px;
+				box-shadow: 0 8px 25px rgba(0,0,0,0.08);
 				display: flex;
 				align-items: center;
 				gap: 20px;
 				transition: transform 0.3s ease, box-shadow 0.3s ease;
+				border-left: 5px solid;
+				position: relative;
+				overflow: hidden;
 			}
 			.sms-card:hover {
 				transform: translateY(-5px);
-				box-shadow: 0 15px 25px rgba(0,0,0,0.15);
+				box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+			}
+			.sms-card .sms-card-icon {
+				width: 60px;
+				height: 60px;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
 			}
 			.sms-card .sms-card-icon .dashicons {
-				font-size: 48px;
-				width: 48px;
-				height: 48px;
-				opacity: 0.8;
+				font-size: 32px;
+				color: #fff;
 			}
 			.sms-card .sms-card-content h3 {
 				margin: 0 0 5px;
-				font-size: 14px;
+				font-size: 13px;
 				font-weight: 600;
-				color: rgba(255,255,255,0.9);
+				color: #777;
 				text-transform: uppercase;
 				letter-spacing: 0.5px;
 			}
 			.sms-card .sms-card-content .sms-card-value {
 				margin: 0;
-				font-size: 38px;
+				font-size: 36px;
 				font-weight: 700;
 				line-height: 1;
+				color: #333;
 			}
 			/* Card color variations */
-			.sms-card.students { background: linear-gradient(135deg, #6e8efb, #a777e3); text-color: white; }
-			.sms-card.teachers { background: linear-gradient(135deg, #ff8c42, #ffc042); }
-			.sms-card.classes { background: linear-gradient(135deg, #42e695, #38ef7d); }
-			.sms-card.exams { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
-			.sms-card.attendance { background: linear-gradient(135deg, #17ead9, #6078ea); }
+			.sms-card.students { border-left-color: #4A90E2; }
+			.sms-card.students .sms-card-icon { background: #4A90E2; }
+
+			.sms-card.teachers { border-left-color: #F5A623; }
+			.sms-card.teachers .sms-card-icon { background: #F5A623; }
+
+			.sms-card.classes { border-left-color: #50E3C2; }
+			.sms-card.classes .sms-card-icon { background: #50E3C2; }
+
+			.sms-card.exams { border-left-color: #D0021B; }
+			.sms-card.exams .sms-card-icon { background: #D0021B; }
+
+			.sms-card.attendance { border-left-color: #4A4A4A; }
+			.sms-card.attendance .sms-card-icon { background: #4A4A4A; }
 
 			/* Style for postboxes */
 			#dashboard-widgets .postbox {
-				border-radius: 12px !important;
+				border-radius: 15px !important;
 				box-shadow: 0 5px 15px rgba(0,0,0,0.05) !important;
-				border: 1px solid #e9ecef !important;
+				border: 1px solid #e0e0e0 !important;
+				background: #fcfcfc;
 			}
 			#dashboard-widgets .postbox .hndle {
-				background: #f8f9fa;
-				border-top-left-radius: 12px;
-				border-top-right-radius: 12px;
-				border-bottom: 1px solid #e9ecef !important;
+				background: #fff;
+				border-top-left-radius: 15px;
+				border-top-right-radius: 15px;
+				border-bottom: 1px solid #e0e0e0 !important;
 				font-size: 16px;
 				font-weight: 600;
 				padding: 15px 20px !important;
+				color: #2c3e50;
 			}
 			#dashboard-widgets .postbox .inside {
 				padding: 0 !important;
@@ -221,23 +243,60 @@ class Admin {
 			}
 			#dashboard-widgets .postbox .inside table {
 				border: none;
+				width: 100%;
+			}
+			#dashboard-widgets .postbox .inside table th,
+			#dashboard-widgets .postbox .inside table td {
+				padding: 15px 20px;
 			}
 			#dashboard-widgets .postbox .inside table th {
-				background: #fff;
-				border-bottom: 2px solid #f1f1f1 !important;
+				background: #f7f7f7;
+				border-bottom: 2px solid #eee !important;
+				font-weight: 600;
+				color: #555;
 			}
 			#dashboard-widgets .postbox .inside table td {
-				border-top: 1px solid #f1f1f1;
+				border-top: 1px solid #eee;
+				color: #444;
 			}
 			#dashboard-widgets .postbox .inside ul {
 				padding: 20px;
-				margin-left: 0;
+				margin: 0;
+				list-style: none;
+			}
+			#dashboard-widgets .postbox .inside ul li {
+				padding: 12px 0;
+				border-bottom: 1px solid #eee;
+				display: flex;
+				align-items: center;
+			}
+			#dashboard-widgets .postbox .inside ul li:last-child {
+				border-bottom: none;
+			}
+			#dashboard-widgets .postbox .inside ul li a {
+				text-decoration: none;
+				font-weight: 500;
+				color: #3498db;
+				transition: color 0.2s;
+			}
+			#dashboard-widgets .postbox .inside ul li a:hover {
+				color: #2980b9;
 			}
 			#dashboard-widgets .postbox .inside .button {
 				margin: 0 20px 20px;
+				background: #3498db;
+				border-color: #2980b9;
+				box-shadow: none;
+				text-shadow: none;
+				border-radius: 5px;
+				transition: background 0.2s;
+			}
+			#dashboard-widgets .postbox .inside .button:hover {
+				background: #2980b9;
 			}
 			#dashboard-widgets .postbox .inside p {
 				padding: 0 20px 20px;
+				color: #666;
 			}
 		</style>
 		<div class="wrap">
@@ -343,9 +402,9 @@ class Admin {
 								<h2 class="hndle"><span><?php esc_html_e( 'Notice Files', 'school-management-system' ); ?></span></h2>
 								<div class="inside">
 									<?php if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) : ?>
-									<ul style="margin-left: 0; padding-left: 0;">
+									<ul>
 										<?php foreach ( $uploaded_files as $file ) : ?>
-											<li style="margin-bottom: 5px; border-bottom: 1px solid #f1f1f1; padding: 10px 0;">
+											<li>
 												<a href="<?php echo esc_url( $file['url'] ); ?>" target="_blank">
 													<span class="dashicons dashicons-media-document" style="vertical-align: middle; margin-right: 5px;"></span>
 													<?php echo esc_html( $file['notice_name'] ?? basename( $file['file'] ) ); ?>
