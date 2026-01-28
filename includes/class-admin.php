@@ -300,8 +300,17 @@ class Admin {
 			}
 		</style>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'School Management System Dashboard', 'school-management-system' ); ?></h1>
-			
+			<?php
+			$settings = get_option( 'sms_settings' );
+			$logo_url = ! empty( $settings['school_logo'] ) ? esc_url( $settings['school_logo'] ) : '';
+			?>
+			<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; background: #fff; padding: 15px 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid #e0e0e0;">
+				<?php if ( $logo_url ) : ?>
+					<img src="<?php echo $logo_url; ?>" style="max-height: 60px; border-radius: 8px;" alt="School Logo">
+				<?php endif; ?>
+				<h1 style="margin: 0;"><?php esc_html_e( 'School Management System Dashboard', 'school-management-system' ); ?></h1>
+			</div>
+
 			<div id="dashboard-widgets-wrap">
 				<div id="dashboard-widgets" class="metabox-holder columns-2">
 					<div id="postbox-container-1" class="postbox-container">
@@ -651,6 +660,7 @@ class Admin {
 			$class   = Classm::get( $fee->class_id );
 			$settings = get_option( 'sms_settings' );
 			$currency = $settings['currency'] ?? '৳';
+			$school_logo = ! empty( $settings['school_logo'] ) ? $settings['school_logo'] : '';
 			$school_name = $settings['school_name'] ?? 'School Management System';
 
 			// Calculate student account summary.
@@ -697,6 +707,9 @@ class Admin {
 					</div>
 
 					<div class="header">
+						<?php if ( $school_logo ) : ?>
+							<img src="<?php echo esc_url( $school_logo ); ?>" alt="<?php esc_attr_e( 'School Logo', 'school-management-system' ); ?>" style="max-height: 80px; margin-bottom: 15px;">
+						<?php endif; ?>
 						<h1><?php echo esc_html( $school_name ); ?></h1>
 						<p><?php esc_html_e( 'Fee Payment Voucher', 'school-management-system' ); ?></p>
 					</div>
