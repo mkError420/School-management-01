@@ -103,7 +103,7 @@ class Admin {
 		);
 
 		// Fees submenu (Dashboard).
-		add_submenu_page(
+		$fees_page = add_submenu_page(
 			'sms-dashboard',
 			__( 'Fees Dashboard', 'school-management-system' ),
 			__( 'Fees', 'school-management-system' ),
@@ -111,6 +111,7 @@ class Admin {
 			'sms-fees',
 			array( $this, 'display_fees' )
 		);
+		add_action( 'admin_footer-' . $fees_page, array( $this, 'fees_page_scripts' ) );
 
 		// Exams submenu.
 		add_submenu_page(
@@ -390,6 +391,33 @@ class Admin {
 				<?php submit_button( __( 'Save Settings', 'school-management-system' ), 'primary', 'sms_save_settings' ); ?>
 			</form>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Scripts for fees page.
+	 */
+	public function fees_page_scripts() {
+		?>
+		<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			if ($.fn.select2 && $('#student_id').length) {
+				$('#student_id').select2({
+					width: '100%',
+					placeholder: '<?php esc_html_e( 'Select Student', 'school-management-system' ); ?>',
+				});
+
+				// Auto-select class when student changes.
+				$('#student_id').on('change', function() {
+					var selected = $(this).find(':selected');
+					var classId = selected.data('class-id');
+					if (classId) {
+						$('#class_id').val(classId).trigger('change');
+					}
+				});
+			}
+		});
+		</script>
 		<?php
 	}
 
@@ -724,7 +752,26 @@ class Admin {
 
 			// Auto-generate Roll Number if empty.
 			if ( empty( $student_data['roll_number'] ) ) {
-				$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
+				if ( $class_id > 0 ) {
+					$class_obj = Classm::get( $class_id );
+					if ( $class_obj ) {
+						$prefix = preg_replace( '/[^A-Za-z0-9]/', '', $class_obj->class_code );
+						$count = Enrollment::count( array( 'class_id' => $class_id ) );
+						$sequence = $count + 1;
+						do {
+							$generated_roll = strtoupper( $prefix ) . '-' . date( 'Y' ) . '-' . str_pad( $sequence, 3, '0', STR_PAD_LEFT );
+							$exists = Student::get_by_roll_number( $generated_roll );
+							if ( $exists ) {
+								$sequence++;
+							}
+						} while ( $exists );
+						$student_data['roll_number'] = $generated_roll;
+					} else {
+						$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
+					}
+				} else {
+					$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
+				}
 			}
 
 			if ( isset( $_POST['sms_add_student'] ) ) {

@@ -8,6 +8,7 @@
 use School_Management_System\Fee;
 use School_Management_System\Student;
 use School_Management_System\Classm;
+use School_Management_System\Enrollment;
 
 if ( ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
@@ -107,10 +108,24 @@ if ( isset( $_GET['sms_message'] ) ) {
 						<select name="student_id" id="student_id" required>
 							<option value=""><?php esc_html_e( 'Select Student', 'school-management-system' ); ?></option>
 							<?php
+							$selected_student_id = $fee ? $fee->student_id : $student_id;
+							
+							// Pre-fetch enrollments to map students to classes efficiently.
+							$student_class_map = array();
+							$all_enrollments = Enrollment::get_all( array( 'status' => 'enrolled' ), 2000 );
+							if ( ! empty( $all_enrollments ) ) {
+								foreach ( $all_enrollments as $enr ) {
+									if ( ! isset( $student_class_map[ $enr->student_id ] ) ) {
+										$student_class_map[ $enr->student_id ] = $enr->class_id;
+									}
+								}
+							}
+
 							$students = Student::get_all( array(), 1000 );
 							foreach ( $students as $student ) {
+								$class_attr = isset( $student_class_map[ $student->id ] ) ? 'data-class-id="' . intval( $student_class_map[ $student->id ] ) . '"' : '';
 								?>
-								<option value="<?php echo intval( $student->id ); ?>" <?php selected( $fee ? $fee->student_id : $student_id, $student->id ); ?>>
+								<option value="<?php echo intval( $student->id ); ?>" <?php echo $class_attr; ?> <?php selected( $selected_student_id, $student->id ); ?>>
 									<?php echo esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ); ?>
 								</option>
 								<?php

@@ -69,7 +69,6 @@ class Activator {
 		            user_id bigint(20) NOT NULL,
 		            employee_id varchar(50) NOT NULL UNIQUE,
 		            first_name varchar(100) NOT NULL,
-		            last_.
 		            last_name varchar(100) NOT NULL,
 		            email varchar(100) NOT NULL,
 		            phone varchar(20),

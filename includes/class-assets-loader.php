@@ -31,6 +31,9 @@ class Assets_Loader {
 			SMS_VERSION
 		);
 
+		// Enqueue Select2.
+		wp_enqueue_style( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0' );
+
 		// Enqueue admin JavaScript.
 		wp_enqueue_script(
 			'sms-admin-script',
@@ -39,6 +42,9 @@ class Assets_Loader {
 			SMS_VERSION,
 			true
 		);
+
+		// Enqueue Select2 JS.
+		wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0', true );
 
 		// Localize script with AJAX URL and nonce.
 		wp_localize_script(

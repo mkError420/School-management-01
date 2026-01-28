@@ -196,20 +196,28 @@ class Student {
 	public static function search( $search_term ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'sms_students';
-		$search_term = '%' . $wpdb->esc_like( $search_term ) . '%';
+		$students_table    = $wpdb->prefix . 'sms_students';
+		$enrollments_table = $wpdb->prefix . 'sms_enrollments';
+		$classes_table     = $wpdb->prefix . 'sms_classes';
+		$like_term         = '%' . $wpdb->esc_like( $search_term ) . '%';
 
 		$sql = $wpdb->prepare(
-			"SELECT * FROM $table_name 
-			WHERE first_name LIKE %s 
-			OR last_name LIKE %s 
-			OR email LIKE %s
-			OR roll_number LIKE %s
-			ORDER BY first_name ASC",
-			$search_term,
-			$search_term,
-			$search_term,
-			$search_term
+			"SELECT DISTINCT s.*, c.class_name FROM $students_table s
+			LEFT JOIN $enrollments_table e ON s.id = e.student_id
+			LEFT JOIN $classes_table c ON e.class_id = c.id
+			WHERE s.first_name LIKE %s 
+			OR s.last_name LIKE %s 
+			OR s.email LIKE %s
+			OR s.roll_number LIKE %s
+			OR c.class_name LIKE %s
+			OR c.class_code LIKE %s
+			ORDER BY s.first_name ASC",
+			$like_term,
+			$like_term,
+			$like_term,
+			$like_term,
+			$like_term,
+			$like_term
 		);
 
 		return $wpdb->get_results( $sql );

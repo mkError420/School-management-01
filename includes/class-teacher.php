@@ -44,7 +44,20 @@ class Teacher {
 
 		$result = Database::insert( 'teachers', $teacher_data );
 		if ( ! $result ) {
-			return new \WP_Error( 'database_insert_failed', 'Failed to insert teacher record into database.' );
+			global $wpdb;
+
+			// Self-healing: If table doesn't exist, try to create it.
+			if ( strpos( $wpdb->last_error, "doesn't exist" ) !== false ) {
+				if ( ! class_exists( 'School_Management_System\\Activator' ) ) {
+					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+				}
+				Activator::activate();
+				$result = Database::insert( 'teachers', $teacher_data );
+			}
+
+			if ( ! $result ) {
+				return new \WP_Error( 'database_insert_failed', 'Failed to insert teacher record into database. ' . $wpdb->last_error );
+			}
 		}
 
 		return $result;
