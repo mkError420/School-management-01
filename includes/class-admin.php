@@ -149,6 +149,97 @@ class Admin {
 	 */
 	public function display_dashboard() {
 		?>
+		<style>
+			.sms-dashboard-cards {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+				gap: 20px;
+			}
+			.sms-card {
+				background: linear-gradient(135deg, #6e8efb, #a777e3);
+				color: white;
+				padding: 25px;
+				border-radius: 12px;
+				box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+				display: flex;
+				align-items: center;
+				gap: 20px;
+				transition: transform 0.3s ease, box-shadow 0.3s ease;
+			}
+			.sms-card:hover {
+				transform: translateY(-5px);
+				box-shadow: 0 15px 25px rgba(0,0,0,0.15);
+			}
+			.sms-card .sms-card-icon .dashicons {
+				font-size: 48px;
+				width: 48px;
+				height: 48px;
+				opacity: 0.8;
+			}
+			.sms-card .sms-card-content h3 {
+				margin: 0 0 5px;
+				font-size: 14px;
+				font-weight: 600;
+				color: rgba(255,255,255,0.9);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+			.sms-card .sms-card-content .sms-card-value {
+				margin: 0;
+				font-size: 38px;
+				font-weight: 700;
+				line-height: 1;
+			}
+			/* Card color variations */
+			.sms-card.students { background: linear-gradient(135deg, #6e8efb, #a777e3); }
+			.sms-card.teachers { background: linear-gradient(135deg, #ff8c42, #ffc042); }
+			.sms-card.classes { background: linear-gradient(135deg, #42e695, #38ef7d); }
+			.sms-card.exams { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+			.sms-card.attendance { background: linear-gradient(135deg, #17ead9, #6078ea); }
+
+			/* Style for postboxes */
+			#dashboard-widgets .postbox {
+				border-radius: 12px !important;
+				box-shadow: 0 5px 15px rgba(0,0,0,0.05) !important;
+				border: 1px solid #e9ecef !important;
+			}
+			#dashboard-widgets .postbox .hndle {
+				background: #f8f9fa;
+				border-top-left-radius: 12px;
+				border-top-right-radius: 12px;
+				border-bottom: 1px solid #e9ecef !important;
+				font-size: 16px;
+				font-weight: 600;
+				padding: 15px 20px !important;
+			}
+			#dashboard-widgets .postbox .inside {
+				padding: 0 !important;
+				margin: 0 !important;
+			}
+			#dashboard-widgets .postbox .inside .sms-dashboard-cards {
+				padding: 20px;
+			}
+			#dashboard-widgets .postbox .inside table {
+				border: none;
+			}
+			#dashboard-widgets .postbox .inside table th {
+				background: #fff;
+				border-bottom: 2px solid #f1f1f1 !important;
+			}
+			#dashboard-widgets .postbox .inside table td {
+				border-top: 1px solid #f1f1f1;
+			}
+			#dashboard-widgets .postbox .inside ul {
+				padding: 20px;
+				margin-left: 0;
+			}
+			#dashboard-widgets .postbox .inside .button {
+				margin: 0 20px 20px;
+			}
+			#dashboard-widgets .postbox .inside p {
+				padding: 0 20px 20px;
+			}
+		</style>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'School Management System Dashboard', 'school-management-system' ); ?></h1>
 			
@@ -160,27 +251,42 @@ class Admin {
 								<h2 class="hndle"><span><?php esc_html_e( 'Statistics', 'school-management-system' ); ?></span></h2>
 								<div class="inside">
 									<div class="sms-dashboard-cards">
-										<div class="sms-card">
-											<h3><?php esc_html_e( 'Total Students', 'school-management-system' ); ?></h3>
-											<p class="sms-card-value"><?php echo intval( Student::count() ); ?></p>
+										<div class="sms-card students">
+											<div class="sms-card-icon"><span class="dashicons dashicons-groups"></span></div>
+											<div class="sms-card-content">
+												<h3><?php esc_html_e( 'Total Students', 'school-management-system' ); ?></h3>
+												<p class="sms-card-value"><?php echo intval( Student::count() ); ?></p>
+											</div>
 										</div>
-										<div class="sms-card">
-											<h3><?php esc_html_e( 'Total Teachers', 'school-management-system' ); ?></h3>
-											<p class="sms-card-value"><?php echo intval( Teacher::count() ); ?></p>
+										<div class="sms-card teachers">
+											<div class="sms-card-icon"><span class="dashicons dashicons-businessman"></span></div>
+											<div class="sms-card-content">
+												<h3><?php esc_html_e( 'Total Teachers', 'school-management-system' ); ?></h3>
+												<p class="sms-card-value"><?php echo intval( Teacher::count() ); ?></p>
+											</div>
 										</div>
-										<div class="sms-card">
-											<h3><?php esc_html_e( 'Total Classes', 'school-management-system' ); ?></h3>
-											<p class="sms-card-value"><?php echo intval( Classm::count() ); ?></p>
+										<div class="sms-card classes">
+											<div class="sms-card-icon"><span class="dashicons dashicons-book-alt"></span></div>
+											<div class="sms-card-content">
+												<h3><?php esc_html_e( 'Total Classes', 'school-management-system' ); ?></h3>
+												<p class="sms-card-value"><?php echo intval( Classm::count() ); ?></p>
+											</div>
 										</div>
-										<div class="sms-card">
-											<h3><?php esc_html_e( 'Total Exams', 'school-management-system' ); ?></h3>
-											<p class="sms-card-value"><?php echo intval( Exam::count() ); ?></p>
+										<div class="sms-card exams">
+											<div class="sms-card-icon"><span class="dashicons dashicons-edit-page"></span></div>
+											<div class="sms-card-content">
+												<h3><?php esc_html_e( 'Total Exams', 'school-management-system' ); ?></h3>
+												<p class="sms-card-value"><?php echo intval( Exam::count() ); ?></p>
+											</div>
 										</div>
-										<div class="sms-card">
-											<h3><?php esc_html_e( 'Present Today', 'school-management-system' ); ?></h3>
-											<p class="sms-card-value">
-												<?php echo intval( Attendance::count( array( 'attendance_date' => current_time( 'Y-m-d' ), 'status' => 'present' ) ) ); ?>
-											</p>
+										<div class="sms-card attendance">
+											<div class="sms-card-icon"><span class="dashicons dashicons-yes-alt"></span></div>
+											<div class="sms-card-content">
+												<h3><?php esc_html_e( 'Present Today', 'school-management-system' ); ?></h3>
+												<p class="sms-card-value">
+													<?php echo intval( Attendance::count( array( 'attendance_date' => current_time( 'Y-m-d' ), 'status' => 'present' ) ) ); ?>
+												</p>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -216,7 +322,7 @@ class Admin {
 											} else {
 												?>
 												<tr>
-													<td colspan="4"><?php esc_html_e( 'No upcoming exams', 'school-management-system' ); ?></td>
+													<td colspan="4"><p style="text-align: center; padding: 20px;"><?php esc_html_e( 'No upcoming exams', 'school-management-system' ); ?></p></td>
 												</tr>
 												<?php
 											}
@@ -239,7 +345,7 @@ class Admin {
 									<?php if ( ! empty( $uploaded_files ) && is_array( $uploaded_files ) ) : ?>
 									<ul style="margin-left: 0; padding-left: 0;">
 										<?php foreach ( $uploaded_files as $file ) : ?>
-											<li style="margin-bottom: 5px;">
+											<li style="margin-bottom: 5px; border-bottom: 1px solid #f1f1f1; padding: 10px 0;">
 												<a href="<?php echo esc_url( $file['url'] ); ?>" target="_blank">
 													<span class="dashicons dashicons-media-document" style="vertical-align: middle; margin-right: 5px;"></span>
 													<?php echo esc_html( $file['notice_name'] ?? basename( $file['file'] ) ); ?>
