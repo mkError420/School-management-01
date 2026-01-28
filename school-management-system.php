@@ -4,8 +4,8 @@
  * Plugin URI: https://example.com/school-management-system
  * Description: A complete school management system for WordPress with student, teacher, class, and exam management.
  * Version: 1.0.1
- * Author: Your Name
- * Author URI: https://example.com
+ * Author: MK.Rabbani
+ * Author URI: https://github.com/mkError420/
  * License: GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: school-management-system

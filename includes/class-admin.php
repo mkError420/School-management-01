@@ -142,7 +142,6 @@ class Admin {
 			'sms-settings',
 			array( $this, 'display_settings' )
 		);
-		add_action( 'admin_print_scripts-' . $settings_page, array( $this, 'settings_page_scripts' ) );
 	}
 
 	/**
@@ -425,45 +424,6 @@ class Admin {
 				<?php submit_button( __( 'Save Settings', 'school-management-system' ), 'primary', 'sms_save_settings' ); ?>
 			</form>
 		</div>
-		<?php
-	}
-
-	/**
-	 * Scripts for settings page.
-	 */
-	public function settings_page_scripts() {
-		// Enqueue media scripts for logo uploader.
-		wp_enqueue_media();
-		?>
-		<script type="text/javascript">
-		jQuery(document).ready(function($) {
-			var image_frame;
-
-			$('#upload_logo_button').click(function(e) {
-				e.preventDefault();
-
-				if ( image_frame ) {
-					image_frame.open();
-					return;
-				}
-
-				image_frame = wp.media({
-					title: '<?php esc_html_e( "Select Media", "school-management-system" ); ?>',
-					multiple: false,
-					library: {
-						type: 'image',
-					}
-				});
-
-				image_frame.on('select', function() {
-					var media_attachment = image_frame.state().get('selection').first().toJSON();
-					$('#school_logo').val(media_attachment.url);
-					$('#logo-preview').html('<img src="' + media_attachment.url + '" style="max-height: 100px; border: 1px solid #ddd; padding: 5px;" />');
-				});
-				image_frame.open();
-			});
-		});
-		</script>
 		<?php
 	}
 

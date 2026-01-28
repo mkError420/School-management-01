@@ -257,7 +257,7 @@ class Fee {
 
 		$table_name = $wpdb->prefix . 'sms_fees';
 
-		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status = 'paid' ORDER BY payment_date DESC LIMIT %d", $limit );
+		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status IN ('paid', 'partially_paid') AND payment_date IS NOT NULL ORDER BY payment_date DESC, id DESC LIMIT %d", $limit );
 
 		return $wpdb->get_results( $sql );
 	}

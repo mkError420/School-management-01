@@ -23,6 +23,14 @@ class Assets_Loader {
 			return;
 		}
 
+		$script_dependencies = array( 'jquery', 'wp-api' );
+
+		// For settings page, enqueue media uploader scripts.
+		if ( 'sms-dashboard_page_sms-settings' === $hook_suffix ) {
+			wp_enqueue_media();
+			$script_dependencies[] = 'media-editor';
+		}
+
 		// Enqueue admin stylesheet.
 		wp_enqueue_style(
 			'sms-admin-style',
@@ -38,7 +46,7 @@ class Assets_Loader {
 		wp_enqueue_script(
 			'sms-admin-script',
 			SMS_PLUGIN_URL . 'public/js/admin-script.js',
-			array( 'jquery', 'wp-api' ),
+			$script_dependencies,
 			SMS_VERSION,
 			true
 		);

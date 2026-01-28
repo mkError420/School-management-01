@@ -116,4 +116,34 @@ jQuery(document).ready(function ($) {
 		html += '</tbody></table>';
 		$('#sms-search-results').html(html);
 	}
+
+	// Logo uploader for settings page.
+	if ($('#upload_logo_button').length) {
+		var image_frame;
+
+		$('#upload_logo_button').on('click', function (e) {
+			e.preventDefault();
+
+			if (image_frame) {
+				image_frame.open();
+				return;
+			}
+
+			image_frame = wp.media({
+				title: 'Select or Upload Logo',
+				multiple: false,
+				library: {
+					type: 'image',
+				},
+			});
+
+			image_frame.on('select', function () {
+				var media_attachment = image_frame.state().get('selection').first().toJSON();
+				$('#school_logo').val(media_attachment.url);
+				$('#logo-preview').html('<img src="' + media_attachment.url + '" style="max-height: 100px; border: 1px solid #ddd; padding: 5px;" />');
+			});
+
+			image_frame.open();
+		});
+	}
 });

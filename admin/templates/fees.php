@@ -321,6 +321,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 		.sms-fee-date { font-size: 12px; color: #888; display: flex; align-items: center; gap: 4px; }
 		.sms-amount-badge { background: #f0f0f0; color: #333; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; }
 		.sms-status-paid { color: #28a745; background: rgba(40, 167, 69, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+		.sms-status-partially-paid { color: #ef6c00; background: rgba(239, 108, 0, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
 		.sms-empty-state { padding: 30px; text-align: center; color: #999; font-style: italic; }
 	</style>
 
@@ -426,17 +427,22 @@ if ( isset( $_GET['sms_message'] ) ) {
 				if ( ! empty( $recent_payments ) ) {
 					foreach ( $recent_payments as $fee ) {
 						$student = Student::get( $fee->student_id );
+						$status_text  = esc_html( strtoupper( str_replace( '_', ' ', $fee->status ) ) );
+						$status_class = 'sms-status-paid';
+						if ( 'partially_paid' === $fee->status ) {
+							$status_class = 'sms-status-partially-paid';
+						}
 						?>
 						<div class="sms-list-item">
 							<div class="sms-student-info">
 								<span class="sms-student-name">
 									<?php echo esc_html( $student ? $student->first_name . ' ' . $student->last_name : 'Unknown' ); ?>
-									<span class="sms-status-paid"><?php esc_html_e( 'PAID', 'school-management-system' ); ?></span>
+									<span class="<?php echo esc_attr( $status_class ); ?>" style="text-transform: uppercase;"><?php echo $status_text; ?></span>
 								</span>
 								<span class="sms-fee-date"><span class="dashicons dashicons-calendar" style="font-size:14px; width:14px; height:14px;"></span> <?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $fee->payment_date ) ) ); ?></span>
 							</div>
 							<div class="sms-amount-badge" style="color: #28a745; background: rgba(40, 167, 69, 0.1);">
-								+ <?php echo esc_html( $fee->amount ); ?>
+								+ <?php echo esc_html( number_format( $fee->paid_amount, 2 ) ); ?>
 							</div>
 						</div>
 						<?php
