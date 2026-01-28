@@ -26,7 +26,7 @@ class Assets_Loader {
 		$script_dependencies = array( 'jquery', 'wp-api' );
 
 		// For settings page, enqueue media uploader scripts.
-		if ( 'sms-dashboard_page_sms-settings' === $hook_suffix ) {
+		if ( 'school-management_page_sms-settings' === $hook_suffix ) {
 			wp_enqueue_media();
 			$script_dependencies[] = 'media-editor';
 		}

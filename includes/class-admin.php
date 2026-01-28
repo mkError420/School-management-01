@@ -191,7 +191,7 @@ class Admin {
 				line-height: 1;
 			}
 			/* Card color variations */
-			.sms-card.students { background: linear-gradient(135deg, #6e8efb, #a777e3); }
+			.sms-card.students { background: linear-gradient(135deg, #6e8efb, #a777e3); text-color: white; }
 			.sms-card.teachers { background: linear-gradient(135deg, #ff8c42, #ffc042); }
 			.sms-card.classes { background: linear-gradient(135deg, #42e695, #38ef7d); }
 			.sms-card.exams { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
