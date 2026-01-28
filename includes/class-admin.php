@@ -134,7 +134,7 @@ class Admin {
 		);
 
 		// Settings submenu.
-		add_submenu_page(
+		$settings_page = add_submenu_page(
 			'sms-dashboard',
 			__( 'Settings', 'school-management-system' ),
 			__( 'Settings', 'school-management-system' ),
@@ -142,6 +142,7 @@ class Admin {
 			'sms-settings',
 			array( $this, 'display_settings' )
 		);
+		add_action( 'admin_print_scripts-' . $settings_page, array( $this, 'settings_page_scripts' ) );
 	}
 
 	/**
@@ -334,14 +335,15 @@ class Admin {
 	}
 
 	/**
-	 * Display settings page.
+	 * Display settings page with tabs.
 	 */
 	public function display_settings() {
 		$settings = get_option( 'sms_settings', array() );
-		$message = '';
+		$message  = '';
 		if ( isset( $_GET['sms_message'] ) && 'settings_saved' === $_GET['sms_message'] ) {
 			$message = __( 'Settings saved successfully.', 'school-management-system' );
 		}
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'School Management System Settings', 'school-management-system' ); ?></h1>
@@ -350,47 +352,118 @@ class Admin {
 				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
+			<h2 class="nav-tab-wrapper">
+				<a href="?page=sms-settings&tab=general" class="nav-tab <?php echo 'general' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'General', 'school-management-system' ); ?></a>
+				<a href="?page=sms-settings&tab=academics" class="nav-tab <?php echo 'academics' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Academics', 'school-management-system' ); ?></a>
+				<a href="?page=sms-settings&tab=fees" class="nav-tab <?php echo 'fees' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Fees', 'school-management-system' ); ?></a>
+			</h2>
+
 			<form method="post" action="">
 				<?php wp_nonce_field( 'sms_settings_nonce', 'sms_settings_nonce_field' ); ?>
 				
-				<table class="form-table">
-					<tr>
-						<th scope="row">
-							<label for="school_name"><?php esc_html_e( 'School Name', 'school-management-system' ); ?></label>
-						</th>
-						<td>
-							<input type="text" name="school_name" id="school_name" class="regular-text" value="<?php echo esc_attr( $settings['school_name'] ?? '' ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="school_email"><?php esc_html_e( 'School Email', 'school-management-system' ); ?></label>
-						</th>
-						<td>
-							<input type="email" name="school_email" id="school_email" class="regular-text" value="<?php echo esc_attr( $settings['school_email'] ?? '' ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="school_phone"><?php esc_html_e( 'School Phone', 'school-management-system' ); ?></label>
-						</th>
-						<td>
-							<input type="text" name="school_phone" id="school_phone" class="regular-text" value="<?php echo esc_attr( $settings['school_phone'] ?? '' ); ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="passing_marks"><?php esc_html_e( 'Passing Marks', 'school-management-system' ); ?></label>
-						</th>
-						<td>
-							<input type="number" name="passing_marks" id="passing_marks" class="small-text" value="<?php echo esc_attr( $settings['passing_marks'] ?? '' ); ?>" />
-						</td>
-					</tr>
-				</table>
+				<?php if ( 'general' === $active_tab ) : ?>
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="school_name"><?php esc_html_e( 'School Name', 'school-management-system' ); ?></label></th>
+							<td><input type="text" name="school_name" id="school_name" class="regular-text" value="<?php echo esc_attr( $settings['school_name'] ?? '' ); ?>" /></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="school_logo"><?php esc_html_e( 'School Logo', 'school-management-system' ); ?></label></th>
+							<td>
+								<input type="text" name="school_logo" id="school_logo" class="regular-text" value="<?php echo esc_attr( $settings['school_logo'] ?? '' ); ?>">
+								<button type="button" class="button" id="upload_logo_button"><?php esc_html_e( 'Upload Logo', 'school-management-system' ); ?></button>
+								<p class="description"><?php esc_html_e( 'Upload or choose a logo from the media library.', 'school-management-system' ); ?></p>
+								<div id="logo-preview" style="margin-top:10px;">
+									<?php if ( ! empty( $settings['school_logo'] ) ) : ?>
+										<img src="<?php echo esc_url( $settings['school_logo'] ); ?>" style="max-height: 100px; border: 1px solid #ddd; padding: 5px;" />
+									<?php endif; ?>
+								</div>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="school_address"><?php esc_html_e( 'School Address', 'school-management-system' ); ?></label></th>
+							<td><textarea name="school_address" id="school_address" class="large-text" rows="3"><?php echo esc_textarea( $settings['school_address'] ?? '' ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="school_email"><?php esc_html_e( 'School Email', 'school-management-system' ); ?></label></th>
+							<td><input type="email" name="school_email" id="school_email" class="regular-text" value="<?php echo esc_attr( $settings['school_email'] ?? '' ); ?>" /></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="school_phone"><?php esc_html_e( 'School Phone', 'school-management-system' ); ?></label></th>
+							<td><input type="text" name="school_phone" id="school_phone" class="regular-text" value="<?php echo esc_attr( $settings['school_phone'] ?? '' ); ?>" /></td>
+						</tr>
+					</table>
+				<?php elseif ( 'academics' === $active_tab ) : ?>
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="academic_year"><?php esc_html_e( 'Current Academic Year', 'school-management-system' ); ?></label></th>
+							<td>
+								<input type="text" name="academic_year" id="academic_year" class="regular-text" value="<?php echo esc_attr( $settings['academic_year'] ?? date( 'Y' ) ); ?>" />
+								<p class="description"><?php esc_html_e( 'e.g., 2024-2025', 'school-management-system' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="passing_marks"><?php esc_html_e( 'Passing Marks (%)', 'school-management-system' ); ?></label></th>
+							<td>
+								<input type="number" name="passing_marks" id="passing_marks" class="small-text" value="<?php echo esc_attr( $settings['passing_marks'] ?? '40' ); ?>" />
+								<p class="description"><?php esc_html_e( 'Default passing marks for exams.', 'school-management-system' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				<?php elseif ( 'fees' === $active_tab ) : ?>
+					<table class="form-table">
+						<tr>
+							<th scope="row"><label for="currency"><?php esc_html_e( 'Currency Symbol', 'school-management-system' ); ?></label></th>
+							<td>
+								<input type="text" name="currency" id="currency" class="regular-text" value="<?php echo esc_attr( $settings['currency'] ?? '৳' ); ?>" />
+								<p class="description"><?php esc_html_e( 'e.g., $, €, ৳', 'school-management-system' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				<?php endif; ?>
 				
 				<?php submit_button( __( 'Save Settings', 'school-management-system' ), 'primary', 'sms_save_settings' ); ?>
 			</form>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Scripts for settings page.
+	 */
+	public function settings_page_scripts() {
+		// Enqueue media scripts for logo uploader.
+		wp_enqueue_media();
+		?>
+		<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			var image_frame;
+
+			$('#upload_logo_button').click(function(e) {
+				e.preventDefault();
+
+				if ( image_frame ) {
+					image_frame.open();
+					return;
+				}
+
+				image_frame = wp.media({
+					title: '<?php esc_html_e( "Select Media", "school-management-system" ); ?>',
+					multiple: false,
+					library: {
+						type: 'image',
+					}
+				});
+
+				image_frame.on('select', function() {
+					var media_attachment = image_frame.state().get('selection').first().toJSON();
+					$('#school_logo').val(media_attachment.url);
+					$('#logo-preview').html('<img src="' + media_attachment.url + '" style="max-height: 100px; border: 1px solid #ddd; padding: 5px;" />');
+				});
+				image_frame.open();
+			});
+		});
+		</script>
 		<?php
 	}
 
@@ -452,8 +525,13 @@ class Admin {
 			$student = Student::get( $fee->student_id );
 			$class   = Classm::get( $fee->class_id );
 			$settings = get_option( 'sms_settings' );
-			$currency = 'Taka';
+			$currency = $settings['currency'] ?? '৳';
 			$school_name = $settings['school_name'] ?? 'School Management System';
+
+			// Calculate student account summary.
+			$total_fees = Fee::get_total_fees( $student->id );
+			$total_paid = Fee::get_paid_fees( $student->id );
+			$total_due  = $total_fees - $total_paid;
 
 			?>
 			<!DOCTYPE html>
@@ -462,7 +540,7 @@ class Admin {
 				<title><?php esc_html_e( 'Fee Voucher', 'school-management-system' ); ?> - <?php echo intval( $fee->id ); ?></title>
 				<style>
 					body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-					.voucher-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+					.voucher-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative; }
 					.header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
 					.header h1 { margin: 0; color: #333; }
 					.header p { margin: 5px 0 0; color: #666; }
@@ -476,10 +554,12 @@ class Admin {
 					.footer { margin-top: 50px; display: flex; justify-content: space-between; text-align: center; }
 					.signature-line { border-top: 1px solid #333; width: 200px; padding-top: 5px; }
 					.print-btn { display: block; width: 100%; padding: 15px; background: #333; color: #fff; text-align: center; text-decoration: none; margin-bottom: 20px; font-weight: bold; }
+					.voucher-top-right { position: absolute; top: 20px; right: 20px; font-size: 14px; font-weight: bold; color: #333; }
 					@media print {
 						body { background: #fff; padding: 0; }
 						.voucher-container { box-shadow: none; border: none; padding: 0; }
 						.print-btn { display: none; }
+						.voucher-top-right { top: 0; right: 0; }
 					}
 				</style>
 			</head>
@@ -487,6 +567,10 @@ class Admin {
 				<div class="voucher-container">
 					<a href="#" onclick="window.print(); return false;" class="print-btn"><?php esc_html_e( 'Click here to Print / Save as PDF', 'school-management-system' ); ?></a>
 					
+					<div class="voucher-top-right">
+						<?php esc_html_e( 'Fee Voucher', 'school-management-system' ); ?> - <?php echo intval( $fee->id ); ?>
+					</div>
+
 					<div class="header">
 						<h1><?php echo esc_html( $school_name ); ?></h1>
 						<p><?php esc_html_e( 'Fee Payment Voucher', 'school-management-system' ); ?></p>
@@ -502,6 +586,7 @@ class Admin {
 						<div class="info-group" style="text-align: right;">
 							<h3><?php esc_html_e( 'Voucher Details', 'school-management-system' ); ?></h3>
 							<p><strong><?php esc_html_e( 'Voucher No', 'school-management-system' ); ?>:</strong> #<?php echo intval( $fee->id ); ?></p>
+							<p><strong><?php esc_html_e( 'Fee Month', 'school-management-system' ); ?>:</strong> <?php echo date_i18n( 'F Y', strtotime( $fee->due_date ) ); ?></p>
 							<p><strong><?php esc_html_e( 'Date', 'school-management-system' ); ?>:</strong> <?php echo date_i18n( get_option( 'date_format' ), strtotime( current_time( 'Y-m-d' ) ) ); ?></p>
 							<p><strong><?php esc_html_e( 'Status', 'school-management-system' ); ?>:</strong> <span style="text-transform: uppercase;"><?php echo esc_html( $fee->status ); ?></span></p>
 						</div>
@@ -521,12 +606,47 @@ class Admin {
 								<td><?php echo esc_html( $fee->payment_date ); ?></td>
 								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount, 2 ) ); ?></td>
 							</tr>
+							<?php if ( 'partially_paid' === $fee->status ) : ?>
+							<tr>
+								<td colspan="2" style="text-align: right;"><?php esc_html_e( 'Paid Amount', 'school-management-system' ); ?></td>
+								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->paid_amount, 2 ) ); ?></td>
+							</tr>
+							<tr>
+								<td colspan="2" style="text-align: right; color: #dc3232;"><?php esc_html_e( 'Due Amount', 'school-management-system' ); ?></td>
+								<td style="text-align: right; color: #dc3232;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount - $fee->paid_amount, 2 ) ); ?></td>
+							</tr>
+							<?php endif; ?>
 							<tr class="total-row">
 								<td colspan="2" style="text-align: right;"><?php esc_html_e( 'Total', 'school-management-system' ); ?></td>
 								<td style="text-align: right;"><?php echo esc_html( $currency . ' ' . number_format( $fee->amount, 2 ) ); ?></td>
 							</tr>
 						</tbody>
 					</table>
+
+					<div style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px;">
+						<h3 style="margin: 0 0 15px; font-size: 16px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px;"><?php esc_html_e( 'Account Summary', 'school-management-system' ); ?></h3>
+						<table style="width: 100%; border-collapse: collapse;">
+							<tr>
+								<td style="padding: 8px; color: #666;"><?php esc_html_e( 'Total Fees', 'school-management-system' ); ?>:</td>
+								<td style="padding: 8px; text-align: right; font-weight: bold;"><?php echo esc_html( $currency . ' ' . number_format( $total_fees, 2 ) ); ?></td>
+							</tr>
+							<tr>
+								<td style="padding: 8px; color: #666;"><?php esc_html_e( 'Total Paid', 'school-management-system' ); ?>:</td>
+								<td style="padding: 8px; text-align: right; font-weight: bold; color: #46b450;"><?php echo esc_html( $currency . ' ' . number_format( $total_paid, 2 ) ); ?></td>
+							</tr>
+							<tr style="background-color: #fff5f5;">
+								<td style="padding: 8px; color: #dc3232; font-weight: bold; border-top: 1px solid #eee;"><?php esc_html_e( 'Total Due', 'school-management-system' ); ?>:</td>
+								<td style="padding: 8px; text-align: right; font-weight: bold; color: #dc3232; border-top: 1px solid #eee;"><?php echo esc_html( $currency . ' ' . number_format( $total_due, 2 ) ); ?></td>
+							</tr>
+						</table>
+					</div>
+
+					<?php if ( ! empty( $fee->remarks ) ) : ?>
+					<div style="margin-top: 20px; padding: 10px; background-color: #f9f9f9; border-left: 3px solid #ccc;">
+						<strong><?php esc_html_e( 'Notes', 'school-management-system' ); ?>:</strong>
+						<?php echo nl2br( esc_html( $fee->remarks ) ); ?>
+					</div>
+					<?php endif; ?>
 
 					<div class="footer">
 						<div class="signature-line">
@@ -948,16 +1068,28 @@ class Admin {
 				'class_id'     => intval( $_POST['class_id'] ?? 0 ),
 				'fee_type'     => sanitize_text_field( $_POST['fee_type'] ?? '' ),
 				'amount'       => sanitize_text_field( $_POST['amount'] ?? '' ),
-				'due_date'     => sanitize_text_field( $_POST['due_date'] ?? '' ),
 				'payment_date' => sanitize_text_field( $_POST['payment_date'] ?? '' ),
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'pending' ),
 				'remarks'      => sanitize_textarea_field( $_POST['remarks'] ?? '' ),
 			);
 
-			// Handle empty dates.
-			if ( empty( $fee_data['due_date'] ) ) {
-				$fee_data['due_date'] = null;
+			// Handle Paid Amount logic.
+			$paid_amount = 0;
+			if ( 'paid' === $fee_data['status'] ) {
+				$paid_amount = floatval( $fee_data['amount'] );
+			} elseif ( 'partially_paid' === $fee_data['status'] ) {
+				$paid_amount = floatval( $_POST['paid_amount'] ?? 0 );
+			} else {
+				$paid_amount = 0;
 			}
+			$fee_data['paid_amount'] = $paid_amount;
+
+			// Handle Fee Month/Year to Due Date.
+			$month = intval( $_POST['fee_month'] ?? date('n') );
+			$year  = intval( $_POST['fee_year'] ?? date('Y') );
+			// Defaulting to the 10th of the month as the due date.
+			$fee_data['due_date'] = date( 'Y-m-d', mktime( 0, 0, 0, $month, 10, $year ) );
+
 			if ( empty( $fee_data['payment_date'] ) ) {
 				$fee_data['payment_date'] = null;
 			}
@@ -970,7 +1102,7 @@ class Admin {
 				$result = Fee::add( $fee_data );
 
 				// Self-healing: Check for missing column error and fix.
-				if ( is_wp_error( $result ) && strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false ) {
+				if ( is_wp_error( $result ) && ( strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false || strpos( $result->get_error_message(), "Unknown column 'paid_amount'" ) !== false ) ) {
 					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
 					Activator::activate();
 					$result = Fee::add( $fee_data );
@@ -988,7 +1120,7 @@ class Admin {
 				$result = Fee::update( $fee_id, $fee_data );
 
 				// Self-healing: Check for missing column error and fix.
-				if ( is_wp_error( $result ) && strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false ) {
+				if ( is_wp_error( $result ) && ( strpos( $result->get_error_message(), "Unknown column 'payment_date'" ) !== false || strpos( $result->get_error_message(), "Unknown column 'paid_amount'" ) !== false ) ) {
 					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
 					Activator::activate();
 					$result = Fee::update( $fee_id, $fee_data );
@@ -1027,6 +1159,56 @@ class Admin {
 			} else {
 				wp_die( esc_html__( 'Invalid data provided.', 'school-management-system' ) );
 			}
+		}
+
+		// Handle settings save.
+		if ( isset( $_POST['sms_save_settings'] ) ) {
+			if ( ! isset( $_POST['sms_settings_nonce_field'] ) || ! wp_verify_nonce( $_POST['sms_settings_nonce_field'], 'sms_settings_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$settings = get_option( 'sms_settings', array() );
+
+			// Sanitize and save settings from all tabs.
+			// General Tab.
+			if ( isset( $_POST['school_name'] ) ) {
+				$settings['school_name'] = sanitize_text_field( $_POST['school_name'] );
+			}
+			if ( isset( $_POST['school_logo'] ) ) {
+				$settings['school_logo'] = esc_url_raw( $_POST['school_logo'] );
+			}
+			if ( isset( $_POST['school_address'] ) ) {
+				$settings['school_address'] = sanitize_textarea_field( $_POST['school_address'] );
+			}
+			if ( isset( $_POST['school_email'] ) ) {
+				$settings['school_email'] = sanitize_email( $_POST['school_email'] );
+			}
+			if ( isset( $_POST['school_phone'] ) ) {
+				$settings['school_phone'] = sanitize_text_field( $_POST['school_phone'] );
+			}
+
+			// Academics Tab.
+			if ( isset( $_POST['academic_year'] ) ) {
+				$settings['academic_year'] = sanitize_text_field( $_POST['academic_year'] );
+			}
+			if ( isset( $_POST['passing_marks'] ) ) {
+				$settings['passing_marks'] = intval( $_POST['passing_marks'] );
+			}
+
+			// Fees Tab.
+			if ( isset( $_POST['currency'] ) ) {
+				$settings['currency'] = sanitize_text_field( $_POST['currency'] );
+			}
+
+			update_option( 'sms_settings', $settings );
+
+			$redirect_url = add_query_arg( array( 'sms_message' => 'settings_saved' ), wp_get_referer() );
+			wp_redirect( $redirect_url );
+			exit;
 		}
 	}
 }

@@ -155,7 +155,7 @@ class Fee {
 
 		$total = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT SUM(amount) FROM $table_name WHERE student_id = %d AND status = 'paid'",
+				"SELECT SUM(paid_amount) FROM $table_name WHERE student_id = %d",
 				$student_id
 			)
 		);
@@ -175,7 +175,9 @@ class Fee {
 			$payment_date = current_time( 'Y-m-d' );
 		}
 
-		return self::update( $fee_id, array( 'status' => 'paid', 'payment_date' => $payment_date ) );
+		// When marking as paid, we assume full payment.
+		$fee = self::get( $fee_id );
+		return self::update( $fee_id, array( 'status' => 'paid', 'payment_date' => $payment_date, 'paid_amount' => $fee->amount ) );
 	}
 
 	/**
@@ -197,6 +199,34 @@ class Fee {
 		);
 
 		return floatval( $total ?? 0 );
+	}
+
+	/**
+	 * Get total collected amount (sum of paid_amount).
+	 *
+	 * @return float Total collected.
+	 */
+	public static function get_total_collected() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'sms_fees';
+		$total = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name" );
+		return floatval( $total ?? 0 );
+	}
+
+	/**
+	 * Get total pending amount (sum of amount - paid_amount).
+	 *
+	 * @return float Total pending.
+	 */
+	public static function get_total_pending() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'sms_fees';
+		// Calculate total amount minus total paid amount.
+		// We filter out records where amount is 0 to avoid issues, though not strictly necessary.
+		$total_amount = $wpdb->get_var( "SELECT SUM(amount) FROM $table_name" );
+		$total_paid   = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name" );
+		
+		return floatval( ($total_amount ?? 0) - ($total_paid ?? 0) );
 	}
 
 	/**
@@ -230,5 +260,54 @@ class Fee {
 		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status = 'paid' ORDER BY payment_date DESC LIMIT %d", $limit );
 
 		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Get collection summary (Class, Month, Year).
+	 *
+	 * @return array Collection summary data.
+	 */
+	public static function get_collection_summary() {
+		global $wpdb;
+		$fees_table = $wpdb->prefix . 'sms_fees';
+		$classes_table = $wpdb->prefix . 'sms_classes';
+
+		// Class wise
+		$class_data = $wpdb->get_results(
+			"SELECT c.class_name, SUM(f.paid_amount) as total 
+			FROM $fees_table f 
+			LEFT JOIN $classes_table c ON f.class_id = c.id 
+			WHERE f.paid_amount > 0 
+			GROUP BY f.class_id 
+			ORDER BY total DESC LIMIT 5"
+		);
+
+		// Month wise (Current Year)
+		$current_year = current_time( 'Y' );
+		$month_data = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT MONTH(payment_date) as month, SUM(paid_amount) as total 
+				FROM $fees_table 
+				WHERE paid_amount > 0 AND YEAR(payment_date) = %d 
+				GROUP BY MONTH(payment_date) 
+				ORDER BY month ASC",
+				$current_year
+			)
+		);
+
+		// Year wise
+		$year_data = $wpdb->get_results(
+			"SELECT YEAR(payment_date) as year, SUM(paid_amount) as total 
+			FROM $fees_table 
+			WHERE paid_amount > 0 
+			GROUP BY YEAR(payment_date) 
+			ORDER BY year DESC LIMIT 5"
+		);
+
+		return array(
+			'class_wise' => $class_data,
+			'month_wise' => $month_data,
+			'year_wise'  => $year_data,
+		);
 	}
 }

@@ -170,6 +170,7 @@ class Activator {
 		            class_id mediumint(9) NOT NULL,
 		            fee_type varchar(100) NOT NULL,
 		            amount decimal(10, 2) NOT NULL,
+		            paid_amount decimal(10, 2) DEFAULT 0,
 		            due_date date,
 		            payment_date date,
 		            status varchar(20) DEFAULT 'pending',
@@ -257,6 +258,10 @@ class Activator {
 		dbDelta( $sql_results );
 		dbDelta( $sql_timetable );
 
+		// Post-update: Ensure existing paid fees have paid_amount set.
+		$fees_table = $wpdb->prefix . 'sms_fees';
+		$wpdb->query( "UPDATE $fees_table SET paid_amount = amount WHERE status = 'paid' AND paid_amount = 0" );
+
 		// Save database version.
 		update_option( 'sms_db_version', SMS_VERSION );
 	}
@@ -267,13 +272,14 @@ class Activator {
 	private static function set_default_options() {
 		if ( ! get_option( 'sms_settings' ) ) {
 			$settings = array(
-				'academic_year'   => current_time( 'Y' ),
-				'currency'        => 'Taka (TK)',
+				'academic_year'   => date( 'Y' ),
+				'currency'        => '৳',
 				'school_name'     => 'My School',
+				'school_logo'     => '',
+				'school_address'  => '',
 				'school_email'    => get_option( 'admin_email' ),
 				'school_phone'    => '',
 				'passing_marks'   => 40,
-				'enable_frontend' => 1,
 			);
 			add_option( 'sms_settings', $settings );
 		}
