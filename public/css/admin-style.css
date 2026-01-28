@@ -130,3 +130,61 @@
 		max-width: 100%;
 	}
 }
+
+/* Enhanced Form Styles for Add New Pages */
+.sms-form-wrapper {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	border-radius: 4px;
+	padding: 20px;
+	margin-top: 20px;
+	max-width: 800px;
+}
+
+.sms-form-wrapper h2 {
+	font-size: 1.3em;
+	margin: 0 0 20px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.sms-form-wrapper .form-table th {
+	width: 200px;
+	vertical-align: top;
+	padding: 20px 10px 20px 0;
+}
+
+.sms-form-wrapper .form-table td {
+	padding: 15px 10px;
+	vertical-align: top;
+}
+
+.sms-form-wrapper input[type="text"],
+.sms-form-wrapper input[type="number"],
+.sms-form-wrapper input[type="email"],
+.sms-form-wrapper input[type="date"],
+.sms-form-wrapper select,
+.sms-form-wrapper textarea {
+	width: 100%;
+	max-width: 400px;
+	min-height: 40px;
+}
+
+/* Select2 Adjustments */
+.sms-form-wrapper .select2-container .select2-selection--single {
+	height: 40px;
+	border-color: #8c8f94;
+	display: flex;
+	align-items: center;
+}
+
+.sms-form-wrapper .select2-container--default .select2-selection--single .select2-selection__arrow {
+	height: 38px;
+	top: 1px;
+}
+
+.sms-form-wrapper .select2-container--default .select2-selection--single .select2-selection__rendered {
+	line-height: 38px;
+	padding-left: 12px;
+}
