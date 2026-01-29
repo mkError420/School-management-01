@@ -668,19 +668,28 @@ class Admin {
 			header( 'Content-Disposition: attachment; filename=students-list-' . date( 'Y-m-d' ) . '.csv' );
 
 			$output = fopen( 'php://output', 'w' );
-			fputcsv( $output, array( 'First Name', 'Last Name', 'Email', 'Roll Number', 'DOB', 'Gender', 'Parent Name', 'Parent Phone', 'Address', 'Status' ) );
+			fputcsv( $output, array( 'First Name', 'Last Name', 'Class', 'Parent Phone', 'Email', 'Roll Number', 'DOB', 'Gender', 'Parent Name', 'Address', 'Status' ) );
 
 			$students = Student::get_all( array(), 10000 );
 			foreach ( $students as $student ) {
+				$class_name = '';
+				$enrollments = Enrollment::get_student_enrollments( $student->id );
+				if ( ! empty( $enrollments ) ) {
+					$class_obj = Classm::get( $enrollments[0]->class_id );
+					if ( $class_obj ) {
+						$class_name = $class_obj->class_name;
+					}
+				}
 				fputcsv( $output, array(
 					$student->first_name,
 					$student->last_name,
+					$class_name,
+					$student->parent_phone,
 					$student->email,
 					$student->roll_number,
 					$student->dob,
 					$student->gender,
 					$student->parent_name,
-					$student->parent_phone,
 					$student->address,
 					$student->status,
 				) );
@@ -701,35 +710,120 @@ class Admin {
 
 			if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
 				$file = fopen( $_FILES['import_file']['tmp_name'], 'r' );
+				// Enable detection of line endings for Mac CSVs.
+				ini_set( 'auto_detect_line_endings', true );
+
 				fgetcsv( $file ); // Skip header row.
 				$imported = 0;
 				$failed = 0;
+				$last_error = '';
+
+				// Pre-fetch classes for mapping.
+				$classes = Classm::get_all( array(), 1000 );
+				$class_map = array();
+				if ( ! empty( $classes ) ) {
+					foreach ( $classes as $class ) {
+						$class_map[ strtolower( trim( $class->class_name ) ) ] = $class->id;
+					}
+				}
 
 				while ( ( $row = fgetcsv( $file ) ) !== false ) {
-					if ( count( $row ) < 9 ) {
+					// Pad row to ensure we have enough columns.
+					$row = array_pad( $row, 11, '' );
+
+					// Skip empty rows.
+					if ( empty( array_filter( $row ) ) ) {
 						continue;
 					}
 					$student_data = array(
 						'first_name'   => sanitize_text_field( $row[0] ),
 						'last_name'    => sanitize_text_field( $row[1] ),
-						'email'        => sanitize_email( $row[2] ),
-						'roll_number'  => sanitize_text_field( $row[3] ),
-						'dob'          => sanitize_text_field( $row[4] ),
-						'gender'       => sanitize_text_field( $row[5] ),
-						'parent_name'  => sanitize_text_field( $row[6] ),
-						'parent_phone' => sanitize_text_field( $row[7] ),
-						'address'      => sanitize_textarea_field( $row[8] ),
-						'status'       => 'active',
+						// Class is at index 2
+						'parent_phone' => sanitize_text_field( $row[3] ),
+						'email'        => sanitize_email( $row[4] ),
+						'roll_number'  => sanitize_text_field( $row[5] ),
+						'dob'          => sanitize_text_field( $row[6] ),
+						'gender'       => sanitize_text_field( $row[7] ),
+						'parent_name'  => sanitize_text_field( $row[8] ),
+						'address'      => sanitize_textarea_field( $row[9] ),
+						'status'       => ! empty( $row[10] ) ? sanitize_text_field( $row[10] ) : 'active',
 					);
+
+					// Default first name if empty.
+					if ( empty( $student_data['first_name'] ) ) {
+						$student_data['first_name'] = 'Student';
+					}
+
+					// Default last name if empty.
+					if ( empty( $student_data['last_name'] ) ) {
+						$student_data['last_name'] = '.';
+					}
+
+					// Auto-generate Roll Number if empty.
+					if ( empty( $student_data['roll_number'] ) ) {
+						$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + $imported + $failed + 1, 4, '0', STR_PAD_LEFT ) . '-' . rand( 100, 999 );
+					}
+
+					// Fill other required fields with defaults if missing to prevent failure.
+					if ( empty( $student_data['dob'] ) ) {
+						$student_data['dob'] = date( 'Y-m-d' );
+					}
+					if ( empty( $student_data['gender'] ) ) {
+						$student_data['gender'] = 'Not Specified';
+					}
+					if ( empty( $student_data['parent_name'] ) ) {
+						$student_data['parent_name'] = 'N/A';
+					}
+					if ( empty( $student_data['parent_phone'] ) ) {
+						$student_data['parent_phone'] = 'N/A';
+					}
+					if ( empty( $student_data['address'] ) ) {
+						$student_data['address'] = 'N/A';
+					}
+					if ( empty( $student_data['email'] ) ) {
+						// Generate a unique dummy email if missing.
+						$student_data['email'] = strtolower( preg_replace( '/[^a-z0-9]/i', '', $student_data['roll_number'] ) ) . '@school.local';
+					}
+
+					$class_name = sanitize_text_field( $row[2] );
+
 					$result = Student::add( $student_data );
 					if ( ! is_wp_error( $result ) ) {
+						if ( ! empty( $class_name ) ) {
+							$class_key = strtolower( trim( $class_name ) );
+
+							// Auto-create class if it doesn't exist.
+							if ( ! isset( $class_map[ $class_key ] ) ) {
+								$class_code = strtoupper( substr( preg_replace( '/[^a-zA-Z0-9]/', '', $class_name ), 0, 8 ) );
+								if ( empty( $class_code ) ) {
+									$class_code = 'CLS-' . rand( 1000, 9999 );
+								}
+								$class_code .= '-' . rand( 100, 999 ); // Ensure uniqueness.
+
+								$new_class_id = Classm::add( array(
+									'class_name' => $class_name,
+									'class_code' => $class_code,
+									'capacity'   => 50,
+									'status'     => 'active',
+								) );
+
+								if ( $new_class_id && ! is_wp_error( $new_class_id ) ) {
+									$class_map[ $class_key ] = $new_class_id;
+								}
+							}
+
+							if ( isset( $class_map[ $class_key ] ) ) {
+								Enrollment::add( array( 'student_id' => $result, 'class_id' => $class_map[ $class_key ] ) );
+							}
+						}
 						$imported++;
 					} else {
 						$failed++;
+						$last_error = $result->get_error_message();
 					}
 				}
 				fclose( $file );
-				wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=import_completed&count=' . $imported . '&failed=' . $failed ) );
+				wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=import_completed&count=' . $imported . '&failed=' . $failed . '&error=' . urlencode( $last_error ) ) );
 				exit;
 			}
 		}
@@ -750,6 +844,28 @@ class Admin {
 			}
 
 			wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=student_deleted' ) );
+			exit;
+		}
+
+		// Handle bulk student deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete' === $_POST['action'] && isset( $_POST['student_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_nonce'], 'sms_bulk_delete_students_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$student_ids = array_map( 'intval', $_POST['student_ids'] );
+			$deleted_count = 0;
+			foreach ( $student_ids as $student_id ) {
+				if ( $student_id > 0 ) {
+					Student::delete( $student_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=students_bulk_deleted&count=' . $deleted_count ) );
 			exit;
 		}
 

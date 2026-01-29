@@ -47,10 +47,19 @@ if ( isset( $_GET['sms_message'] ) ) {
 		$message = __( 'Student updated successfully.', 'school-management-system' );
 	} elseif ( 'student_deleted' === $sms_message ) {
 		$message = __( 'Student deleted successfully.', 'school-management-system' );
+	} elseif ( 'students_bulk_deleted' === $sms_message ) {
+		$count = intval( $_GET['count'] ?? 0 );
+		$message = sprintf( __( '%d students deleted successfully.', 'school-management-system' ), $count );
 	} elseif ( 'import_completed' === $sms_message ) {
 		$count = intval( $_GET['count'] ?? 0 );
 		$failed = intval( $_GET['failed'] ?? 0 );
-		$message = sprintf( __( 'Import completed. %d students added successfully. %d failed (duplicates or missing fields).', 'school-management-system' ), $count, $failed );
+		$error_msg = isset( $_GET['error'] ) ? sanitize_text_field( urldecode( $_GET['error'] ) ) : '';
+		$message = sprintf( __( 'Import completed. %d students added successfully. %d failed.', 'school-management-system' ), $count, $failed );
+		if ( $failed > 0 && ! empty( $error_msg ) ) {
+			$message .= ' ' . sprintf( __( 'Last error: %s', 'school-management-system' ), $error_msg );
+		} elseif ( $failed > 0 ) {
+			$message .= ' ' . __( '(duplicates or missing fields)', 'school-management-system' );
+		}
 	}
 }
 
@@ -75,33 +84,12 @@ if ( isset( $_GET['sms_message'] ) ) {
 }
 </style>
 <div class="wrap">
-	<h1 class="wp-heading-inline"><?php esc_html_e( 'Students', 'school-management-system' ); ?></h1>
-	<?php if ( ! $show_form ) : ?>
-		<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-students&action=add' ) ); ?>" class="page-title-action sms-btn-add"><?php esc_html_e( 'Add New', 'school-management-system' ); ?></a>
-		<a href="#" id="sms-import-btn" class="page-title-action sms-btn-import"><?php esc_html_e( 'Import CSV', 'school-management-system' ); ?></a>
-		<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-students&action=export_students' ), 'sms_export_students_nonce' ) ); ?>" class="page-title-action sms-btn-export"><?php esc_html_e( 'Export CSV', 'school-management-system' ); ?></a>
-	<?php endif; ?>
+	<h1><?php esc_html_e( 'Students', 'school-management-system' ); ?></h1>
 	<hr class="wp-header-end">
 
 	<?php if ( ! empty( $message ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
 	<?php endif; ?>
-
-	<!-- Import Form -->
-	<div id="sms-import-form" style="display: none; background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
-		<h2><?php esc_html_e( 'Import Students from CSV', 'school-management-system' ); ?></h2>
-		<p><?php esc_html_e( 'Upload a CSV file with the following columns in order: First Name, Last Name, Email, Roll Number, DOB (YYYY-MM-DD), Gender, Parent Name, Parent Phone, Address.', 'school-management-system' ); ?></p>
-		<form method="post" action="" enctype="multipart/form-data">
-			<?php wp_nonce_field( 'sms_import_students_nonce', 'sms_import_nonce' ); ?>
-			<table class="form-table">
-				<tr>
-					<td><input type="file" name="import_file" accept=".csv" required /></td>
-				</tr>
-			</table>
-			<button type="submit" name="sms_import_students" class="button button-primary"><?php esc_html_e( 'Import Students', 'school-management-system' ); ?></button>
-			<button type="button" id="sms-cancel-import" class="button"><?php esc_html_e( 'Cancel', 'school-management-system' ); ?></button>
-		</form>
-	</div>
 
 	<!-- Add/Edit Form -->
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
@@ -249,9 +237,21 @@ if ( isset( $_GET['sms_message'] ) ) {
 	</form>
 	<div style="clear: both;"></div>
 
+	<form method="post" action="">
+	<?php wp_nonce_field( 'sms_bulk_delete_students_nonce', 'sms_bulk_delete_nonce' ); ?>
+	<div class="tablenav top">
+		<div class="alignleft actions bulkactions">
+			<select name="action">
+				<option value="-1"><?php esc_html_e( 'Bulk Actions', 'school-management-system' ); ?></option>
+				<option value="bulk_delete"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></option>
+			</select>
+			<input type="submit" class="button action" value="<?php esc_attr_e( 'Apply', 'school-management-system' ); ?>">
+		</div>
+	</div>
 	<table class="wp-list-table widefat fixed striped students-table">
 		<thead>
 			<tr>
+				<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox"></td>
 				<th><?php esc_html_e( 'Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Parent Phone', 'school-management-system' ); ?></th>
@@ -280,6 +280,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 					$delete_url = wp_nonce_url( admin_url( 'admin.php?page=sms-students&action=delete&id=' . $student->id ), 'sms_delete_student_nonce', '_wpnonce' );
 					?>
 					<tr>
+						<th scope="row" class="check-column"><input type="checkbox" name="student_ids[]" value="<?php echo intval( $student->id ); ?>"></th>
 						<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
 						<td><?php echo esc_html( $class_name ); ?></td>
 						<td><?php echo esc_html( $student->parent_phone ?? '' ); ?></td>
@@ -297,7 +298,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 						</td>
 					</tr>
 					<tr id="details-<?php echo intval( $student->id ); ?>" class="student-details-row" style="display: none;">
-						<td colspan="4">
+						<td colspan="5">
 							<ul class="student-details-list">
 								<li><strong><?php esc_html_e( 'ID', 'school-management-system' ); ?>:</strong> <?php echo intval( $student->id ); ?></li>
 								<li><strong><?php esc_html_e( 'Email', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->email ); ?></li>
@@ -315,13 +316,14 @@ if ( isset( $_GET['sms_message'] ) ) {
 			} else {
 				?>
 				<tr>
-					<td colspan="4"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
+					<td colspan="5"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
 			?>
 		</tbody>
 	</table>
+	</form>
 
 	<script>
 	jQuery(document).ready(function($) {
@@ -329,15 +331,6 @@ if ( isset( $_GET['sms_message'] ) ) {
 			e.preventDefault();
 			var targetRow = $(this).data('target');
 			$(targetRow).toggle();
-		});
-
-		$('#sms-import-btn').on('click', function(e) {
-			e.preventDefault();
-			$('#sms-import-form').slideDown();
-		});
-		$('#sms-cancel-import').on('click', function(e) {
-			e.preventDefault();
-			$('#sms-import-form').slideUp();
 		});
 	});
 	</script>

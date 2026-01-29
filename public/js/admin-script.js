@@ -146,4 +146,10 @@ jQuery(document).ready(function ($) {
 			image_frame.open();
 		});
 	}
+
+	// Select All checkbox for bulk actions
+	$('#cb-select-all-1').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="student_ids[]"]').prop('checked', isChecked);
+	});
 });
