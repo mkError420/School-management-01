@@ -27,6 +27,8 @@ if ( 'edit' === $action && $student_id ) {
 	$is_edit = true;
 }
 
+$show_form = ( 'add' === $action || $is_edit );
+
 $current_class_id = 0;
 if ( $is_edit && $student ) {
 	$enrollments = Enrollment::get_student_enrollments( $student->id );
@@ -45,6 +47,10 @@ if ( isset( $_GET['sms_message'] ) ) {
 		$message = __( 'Student updated successfully.', 'school-management-system' );
 	} elseif ( 'student_deleted' === $sms_message ) {
 		$message = __( 'Student deleted successfully.', 'school-management-system' );
+	} elseif ( 'import_completed' === $sms_message ) {
+		$count = intval( $_GET['count'] ?? 0 );
+		$failed = intval( $_GET['failed'] ?? 0 );
+		$message = sprintf( __( 'Import completed. %d students added successfully. %d failed (duplicates or missing fields).', 'school-management-system' ), $count, $failed );
 	}
 }
 
@@ -69,11 +75,33 @@ if ( isset( $_GET['sms_message'] ) ) {
 }
 </style>
 <div class="wrap">
-	<h1><?php esc_html_e( 'Students', 'school-management-system' ); ?></h1>
+	<h1 class="wp-heading-inline"><?php esc_html_e( 'Students', 'school-management-system' ); ?></h1>
+	<?php if ( ! $show_form ) : ?>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-students&action=add' ) ); ?>" class="page-title-action sms-btn-add"><?php esc_html_e( 'Add New', 'school-management-system' ); ?></a>
+		<a href="#" id="sms-import-btn" class="page-title-action sms-btn-import"><?php esc_html_e( 'Import CSV', 'school-management-system' ); ?></a>
+		<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-students&action=export_students' ), 'sms_export_students_nonce' ) ); ?>" class="page-title-action sms-btn-export"><?php esc_html_e( 'Export CSV', 'school-management-system' ); ?></a>
+	<?php endif; ?>
+	<hr class="wp-header-end">
 
 	<?php if ( ! empty( $message ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
 	<?php endif; ?>
+
+	<!-- Import Form -->
+	<div id="sms-import-form" style="display: none; background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
+		<h2><?php esc_html_e( 'Import Students from CSV', 'school-management-system' ); ?></h2>
+		<p><?php esc_html_e( 'Upload a CSV file with the following columns in order: First Name, Last Name, Email, Roll Number, DOB (YYYY-MM-DD), Gender, Parent Name, Parent Phone, Address.', 'school-management-system' ); ?></p>
+		<form method="post" action="" enctype="multipart/form-data">
+			<?php wp_nonce_field( 'sms_import_students_nonce', 'sms_import_nonce' ); ?>
+			<table class="form-table">
+				<tr>
+					<td><input type="file" name="import_file" accept=".csv" required /></td>
+				</tr>
+			</table>
+			<button type="submit" name="sms_import_students" class="button button-primary"><?php esc_html_e( 'Import Students', 'school-management-system' ); ?></button>
+			<button type="button" id="sms-cancel-import" class="button"><?php esc_html_e( 'Cancel', 'school-management-system' ); ?></button>
+		</form>
+	</div>
 
 	<!-- Add/Edit Form -->
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
@@ -301,6 +329,15 @@ if ( isset( $_GET['sms_message'] ) ) {
 			e.preventDefault();
 			var targetRow = $(this).data('target');
 			$(targetRow).toggle();
+		});
+
+		$('#sms-import-btn').on('click', function(e) {
+			e.preventDefault();
+			$('#sms-import-form').slideDown();
+		});
+		$('#sms-cancel-import').on('click', function(e) {
+			e.preventDefault();
+			$('#sms-import-form').slideUp();
 		});
 	});
 	</script>

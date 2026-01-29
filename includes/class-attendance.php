@@ -179,4 +179,44 @@ class Attendance {
 			) );
 		}
 	}
+
+	/**
+	 * Get monthly attendance report for a class.
+	 *
+	 * @param int $class_id Class ID.
+	 * @param int $year     Year.
+	 * @param int $month    Month.
+	 * @return array Report data, structured by student_id and day.
+	 */
+	public static function get_monthly_class_attendance_report( $class_id, $year, $month ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_attendance';
+		$start_date = date( 'Y-m-d', mktime( 0, 0, 0, $month, 1, $year ) );
+		$end_date   = date( 'Y-m-t', strtotime( $start_date ) );
+
+		$sql = $wpdb->prepare(
+			"SELECT student_id, DAY(attendance_date) as day, status 
+			FROM $table_name 
+			WHERE class_id = %d 
+			AND attendance_date BETWEEN %s AND %s",
+			$class_id,
+			$start_date,
+			$end_date
+		);
+
+		$results = $wpdb->get_results( $sql );
+
+		$report = array();
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $record ) {
+				if ( ! isset( $report[ $record->student_id ] ) ) {
+					$report[ $record->student_id ] = array();
+				}
+				$report[ $record->student_id ][ (int) $record->day ] = $record->status;
+			}
+		}
+
+		return $report;
+	}
 }

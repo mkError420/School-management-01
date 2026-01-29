@@ -110,8 +110,12 @@ class Assets_Loader {
 			.school-management_page_sms-students .wrap > h1::before { content: '\\f307'; color: #3498db; }
 			.school-management_page_sms-students .wp-list-table { border-top: 4px solid #3498db; }
 			.school-management_page_sms-students .wp-list-table thead th { background: linear-gradient(to bottom, #f2f8fc, #eaf4fb); border-bottom-color: #3498db !important; color: #2980b9; }
-			.school-management_page_sms-students .page-title-action { background: #3498db !important; border-color: #2980b9 !important; }
-			.school-management_page_sms-students .page-title-action:hover { background: #2980b9 !important; }
+			.school-management_page_sms-students .sms-btn-add { background: #3498db !important; border-color: #2980b9 !important; color: #fff !important; }
+			.school-management_page_sms-students .sms-btn-add:hover { background: #2980b9 !important; }
+			.school-management_page_sms-students .sms-btn-import { background: #f39c12 !important; border-color: #e67e22 !important; color: #fff !important; }
+			.school-management_page_sms-students .sms-btn-import:hover { background: #e67e22 !important; }
+			.school-management_page_sms-students .sms-btn-export { background: #2ecc71 !important; border-color: #27ae60 !important; color: #fff !important; }
+			.school-management_page_sms-students .sms-btn-export:hover { background: #27ae60 !important; }
 			.school-management_page_sms-students .wp-list-table tbody tr:hover { background-color: #eaf4fb; }
 
 			/* Teachers */

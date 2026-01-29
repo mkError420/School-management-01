@@ -654,6 +654,86 @@ class Admin {
 			exit;
 		}
 
+		// Handle Student Export.
+		if ( isset( $_GET['action'] ) && 'export_students' === $_GET['action'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_export_students_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=students-list-' . date( 'Y-m-d' ) . '.csv' );
+
+			$output = fopen( 'php://output', 'w' );
+			fputcsv( $output, array( 'First Name', 'Last Name', 'Email', 'Roll Number', 'DOB', 'Gender', 'Parent Name', 'Parent Phone', 'Address', 'Status' ) );
+
+			$students = Student::get_all( array(), 10000 );
+			foreach ( $students as $student ) {
+				fputcsv( $output, array(
+					$student->first_name,
+					$student->last_name,
+					$student->email,
+					$student->roll_number,
+					$student->dob,
+					$student->gender,
+					$student->parent_name,
+					$student->parent_phone,
+					$student->address,
+					$student->status,
+				) );
+			}
+			fclose( $output );
+			exit;
+		}
+
+		// Handle Student Import.
+		if ( isset( $_POST['sms_import_students'] ) ) {
+			if ( ! isset( $_POST['sms_import_nonce'] ) || ! wp_verify_nonce( $_POST['sms_import_nonce'], 'sms_import_students_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
+				$file = fopen( $_FILES['import_file']['tmp_name'], 'r' );
+				fgetcsv( $file ); // Skip header row.
+				$imported = 0;
+				$failed = 0;
+
+				while ( ( $row = fgetcsv( $file ) ) !== false ) {
+					if ( count( $row ) < 9 ) {
+						continue;
+					}
+					$student_data = array(
+						'first_name'   => sanitize_text_field( $row[0] ),
+						'last_name'    => sanitize_text_field( $row[1] ),
+						'email'        => sanitize_email( $row[2] ),
+						'roll_number'  => sanitize_text_field( $row[3] ),
+						'dob'          => sanitize_text_field( $row[4] ),
+						'gender'       => sanitize_text_field( $row[5] ),
+						'parent_name'  => sanitize_text_field( $row[6] ),
+						'parent_phone' => sanitize_text_field( $row[7] ),
+						'address'      => sanitize_textarea_field( $row[8] ),
+						'status'       => 'active',
+					);
+					$result = Student::add( $student_data );
+					if ( ! is_wp_error( $result ) ) {
+						$imported++;
+					} else {
+						$failed++;
+					}
+				}
+				fclose( $file );
+				wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=import_completed&count=' . $imported . '&failed=' . $failed ) );
+				exit;
+			}
+		}
+
 		// Handle student deletion.
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-students' === $_GET['page'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_student_nonce' ) ) {
