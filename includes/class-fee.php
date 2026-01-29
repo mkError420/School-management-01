@@ -310,4 +310,46 @@ class Fee {
 			'year_wise'  => $year_data,
 		);
 	}
+
+	/**
+	 * Get fees report with detailed information and filters.
+	 *
+	 * @param array $filters Filter parameters.
+	 * @return array Array of fee objects with details.
+	 */
+	public static function get_fees_report( $filters = array() ) {
+		global $wpdb;
+
+		$fees_table     = $wpdb->prefix . 'sms_fees';
+		$students_table = $wpdb->prefix . 'sms_students';
+		$classes_table  = $wpdb->prefix . 'sms_classes';
+
+		$sql = "SELECT f.*, 
+				s.first_name, s.last_name, s.roll_number, 
+				c.class_name 
+				FROM $fees_table f
+				LEFT JOIN $students_table s ON f.student_id = s.id
+				LEFT JOIN $classes_table c ON f.class_id = c.id
+				WHERE 1=1";
+
+		if ( ! empty( $filters['class_id'] ) ) {
+			$sql .= $wpdb->prepare( " AND f.class_id = %d", $filters['class_id'] );
+		}
+
+		if ( ! empty( $filters['status'] ) ) {
+			$sql .= $wpdb->prepare( " AND f.status = %s", $filters['status'] );
+		}
+
+		if ( ! empty( $filters['start_date'] ) ) {
+			$sql .= $wpdb->prepare( " AND f.due_date >= %s", $filters['start_date'] );
+		}
+
+		if ( ! empty( $filters['end_date'] ) ) {
+			$sql .= $wpdb->prepare( " AND f.due_date <= %s", $filters['end_date'] );
+		}
+
+		$sql .= " ORDER BY f.due_date DESC, f.id DESC";
+
+		return $wpdb->get_results( $sql );
+	}
 }

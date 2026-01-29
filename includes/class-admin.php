@@ -675,6 +675,51 @@ class Admin {
 			exit;
 		}
 
+		// Handle Fees Report Export.
+		if ( isset( $_GET['action'] ) && 'export_fees_report' === $_GET['action'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_export_fees_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$filters = array(
+				'class_id'   => ! empty( $_GET['class_id'] ) ? intval( $_GET['class_id'] ) : '',
+				'status'     => ! empty( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : '',
+				'start_date' => ! empty( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '',
+				'end_date'   => ! empty( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '',
+			);
+
+			$fees_report = Fee::get_fees_report( $filters );
+
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=fees-report-' . date( 'Y-m-d' ) . '.csv' );
+
+			$output = fopen( 'php://output', 'w' );
+			fputcsv( $output, array( 'Student Name', 'Roll Number', 'Class', 'Fee Type', 'Amount', 'Paid Amount', 'Due Amount', 'Status', 'Due Date', 'Payment Date' ) );
+
+			if ( ! empty( $fees_report ) ) {
+				foreach ( $fees_report as $fee ) {
+					fputcsv( $output, array(
+						$fee->first_name . ' ' . $fee->last_name,
+						$fee->roll_number,
+						$fee->class_name,
+						$fee->fee_type,
+						$fee->amount,
+						$fee->paid_amount,
+						$fee->amount - $fee->paid_amount,
+						ucfirst( str_replace( '_', ' ', $fee->status ) ),
+						$fee->due_date,
+						$fee->payment_date,
+					) );
+				}
+			}
+			fclose( $output );
+			exit;
+		}
+
 		// Handle Student Export.
 		if ( isset( $_GET['action'] ) && 'export_students' === $_GET['action'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_export_students_nonce' ) ) {
