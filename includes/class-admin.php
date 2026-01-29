@@ -524,7 +524,25 @@ class Admin {
 			<head>
 				<title><?php esc_html_e( 'Fee Voucher', 'school-management-system' ); ?> - <?php echo intval( $fee->id ); ?></title>
 				<style>
-					body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+					body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; position: relative; }
+					<?php if ( $school_logo ) : ?>
+					body::before {
+						content: '';
+						position: fixed;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+						background-image: url('<?php echo esc_url( $school_logo ); ?>');
+						background-repeat: no-repeat;
+						background-position: center;
+						background-size: contain;
+						opacity: 0.05;
+						z-index: -1;
+						-webkit-print-color-adjust: exact;
+						color-adjust: exact;
+					}
+					<?php endif; ?>
 					.voucher-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border: 1px solid #ddd; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative; }
 					.header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
 					.header h1 { margin: 0; color: #333; }
@@ -539,12 +557,15 @@ class Admin {
 					.footer { margin-top: 50px; display: flex; justify-content: space-between; text-align: center; }
 					.signature-line { border-top: 1px solid #333; width: 200px; padding-top: 5px; }
 					.print-btn { display: block; width: 100%; padding: 15px; background: #333; color: #fff; text-align: center; text-decoration: none; margin-bottom: 20px; font-weight: bold; }
-					.voucher-top-right { position: absolute; top: 20px; right: 20px; font-size: 14px; font-weight: bold; color: #333; }
+					.voucher-top-right { position: absolute; top: 40px; right: 40px; font-size: 14px; font-weight: bold; color: #333; }
 					@media print {
-						body { background: #fff; padding: 0; }
-						.voucher-container { box-shadow: none; border: none; padding: 0; }
+						body { background: #fff !important; padding: 0; }
+						<?php if ( $school_logo ) : ?>
+						body::before { opacity: 0.08; }
+						<?php endif; ?>
+						.voucher-container { box-shadow: none; border: none; padding: 0; background: transparent; }
 						.print-btn { display: none; }
-						.voucher-top-right { top: 0; right: 0; }
+						.voucher-top-right { top: 20px; right: 20px; }
 					}
 				</style>
 			</head>
