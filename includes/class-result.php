@@ -176,4 +176,52 @@ class Result {
 
 		return floatval( $average ?? 0 );
 	}
+
+	/**
+	 * Get results with detailed information and filters.
+	 *
+	 * @param array $filters Filter parameters.
+	 * @return array Array of result objects with details.
+	 */
+	public static function get_by_filters( $filters = array() ) {
+		global $wpdb;
+
+		$results_table = $wpdb->prefix . 'sms_results';
+		$exams_table   = $wpdb->prefix . 'sms_exams';
+		$students_table = $wpdb->prefix . 'sms_students';
+		$classes_table = $wpdb->prefix . 'sms_classes';
+		$subjects_table = $wpdb->prefix . 'sms_subjects';
+
+		$sql = "SELECT r.*, 
+				s.first_name, s.last_name, s.roll_number, 
+				e.exam_name, 
+				c.class_name, 
+				sub.subject_name 
+				FROM $results_table r
+				LEFT JOIN $students_table s ON r.student_id = s.id
+				LEFT JOIN $exams_table e ON r.exam_id = e.id
+				LEFT JOIN $classes_table c ON e.class_id = c.id
+				LEFT JOIN $subjects_table sub ON r.subject_id = sub.id
+				WHERE 1=1";
+
+		if ( ! empty( $filters['class_id'] ) ) {
+			$sql .= $wpdb->prepare( " AND e.class_id = %d", $filters['class_id'] );
+		}
+
+		if ( ! empty( $filters['exam_id'] ) ) {
+			$sql .= $wpdb->prepare( " AND r.exam_id = %d", $filters['exam_id'] );
+		}
+
+		if ( ! empty( $filters['subject_id'] ) ) {
+			$sql .= $wpdb->prepare( " AND r.subject_id = %d", $filters['subject_id'] );
+		}
+
+		if ( ! empty( $filters['student_id'] ) ) {
+			$sql .= $wpdb->prepare( " AND r.student_id = %d", $filters['student_id'] );
+		}
+
+		$sql .= " ORDER BY r.id DESC";
+
+		return $wpdb->get_results( $sql );
+	}
 }

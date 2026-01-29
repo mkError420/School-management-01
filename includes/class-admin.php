@@ -1026,6 +1026,7 @@ class Admin {
 			$result_data = array(
 				'student_id'    => intval( $_POST['student_id'] ?? 0 ),
 				'exam_id'       => intval( $_POST['exam_id'] ?? 0 ),
+				'subject_id'    => intval( $_POST['subject_id'] ?? 0 ),
 				'obtained_marks' => floatval( $_POST['obtained_marks'] ?? 0 ),
 			);
 
