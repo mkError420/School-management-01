@@ -787,6 +787,13 @@ class Admin {
 
 					$class_name = sanitize_text_field( $row[2] );
 
+					// Enforce class enrollment. If class name is missing, fail the row.
+					if ( empty( $class_name ) ) {
+						$failed++;
+						$last_error = __( 'Class Name is missing for one or more rows.', 'school-management-system' );
+						continue;
+					}
+
 					$result = Student::add( $student_data );
 					if ( ! is_wp_error( $result ) ) {
 						if ( ! empty( $class_name ) ) {
@@ -869,6 +876,116 @@ class Admin {
 			exit;
 		}
 
+		// Handle bulk class deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_classes' === $_POST['action'] && isset( $_POST['class_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_classes_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_classes_nonce'], 'sms_bulk_delete_classes_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$class_ids = array_map( 'intval', $_POST['class_ids'] );
+			$deleted_count = 0;
+			foreach ( $class_ids as $class_id ) {
+				if ( $class_id > 0 ) {
+					Classm::delete( $class_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-classes&sms_message=classes_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
+		// Handle bulk teacher deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_teachers' === $_POST['action'] && isset( $_POST['teacher_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_teachers_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_teachers_nonce'], 'sms_bulk_delete_teachers_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$teacher_ids = array_map( 'intval', $_POST['teacher_ids'] );
+			$deleted_count = 0;
+			foreach ( $teacher_ids as $teacher_id ) {
+				if ( $teacher_id > 0 ) {
+					Teacher::delete( $teacher_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-teachers&sms_message=teachers_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
+		// Handle bulk subject deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_subjects' === $_POST['action'] && isset( $_POST['subject_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_subjects_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_subjects_nonce'], 'sms_bulk_delete_subjects_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$subject_ids = array_map( 'intval', $_POST['subject_ids'] );
+			$deleted_count = 0;
+			foreach ( $subject_ids as $subject_id ) {
+				if ( $subject_id > 0 ) {
+					Subject::delete( $subject_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-subjects&sms_message=subjects_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
+		// Handle bulk enrollment deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_enrollments' === $_POST['action'] && isset( $_POST['enrollment_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_enrollments_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_enrollments_nonce'], 'sms_bulk_delete_enrollments_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$enrollment_ids = array_map( 'intval', $_POST['enrollment_ids'] );
+			$deleted_count = 0;
+			foreach ( $enrollment_ids as $enrollment_id ) {
+				if ( $enrollment_id > 0 ) {
+					Enrollment::delete( $enrollment_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollments_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
+		// Handle bulk enrollment deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_enrollments' === $_POST['action'] && isset( $_POST['enrollment_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_enrollments_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_enrollments_nonce'], 'sms_bulk_delete_enrollments_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$enrollment_ids = array_map( 'intval', $_POST['enrollment_ids'] );
+			$deleted_count = 0;
+			foreach ( $enrollment_ids as $enrollment_id ) {
+				if ( $enrollment_id > 0 ) {
+					Enrollment::delete( $enrollment_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollments_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
 		// Handle enrollment deletion.
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-enrollments' === $_GET['page'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_enrollment_nonce' ) ) {
@@ -881,7 +998,15 @@ class Admin {
 
 			$enrollment_id = intval( $_GET['id'] ?? 0 );
 			if ( $enrollment_id > 0 ) {
-				Enrollment::delete( $enrollment_id );
+				$enrollment = Enrollment::get( $enrollment_id );
+				if ( $enrollment ) {
+					$student_id = $enrollment->student_id;
+					// Check if this is the last enrollment for the student.
+					$enrollment_count = Enrollment::count( array( 'student_id' => $student_id ) );
+					if ( $enrollment_count <= 1 ) {
+						wp_die( esc_html__( 'Cannot delete the last enrollment for a student. To remove the student, please delete the student record from the Students page.', 'school-management-system' ), __( 'Deletion Error', 'school-management-system' ) );
+					}
+				}				Enrollment::delete( $enrollment_id );
 			}
 
 			wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollment_deleted' ) );
@@ -1111,8 +1236,8 @@ class Admin {
 			}
 		}
 
-		// Handle enrollment form submission.
-		if ( isset( $_POST['sms_add_enrollment'] ) ) {
+		// Handle enrollment of an existing student.
+		if ( isset( $_POST['sms_enroll_existing_student'] ) ) {
 			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
 				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
 			}
@@ -1127,13 +1252,96 @@ class Admin {
 			);
 
 			$result = Enrollment::add( $enrollment_data );
-			if ( $result && ! is_wp_error( $result ) ) {
-				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollment_added' ) );
-				exit;
+			if ( is_wp_error( $result ) && 'duplicate_enrollment' === $result->get_error_code() ) {
+				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
 			} else {
-				$error_message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Failed to add enrollment.', 'school-management-system' );
-				wp_die( $error_message );
+				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollment_added' ) );
 			}
+			exit;
+		}
+		// Handle creation and enrollment of a new student.
+		if ( isset( $_POST['sms_create_and_enroll_student'] ) ) {
+			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			// Collect student data from form.
+			$student_data = array(
+				'first_name'   => sanitize_text_field( $_POST['first_name'] ?? '' ),
+				'last_name'    => sanitize_text_field( $_POST['last_name'] ?? '' ),
+				'email'        => sanitize_email( $_POST['email'] ?? '' ),
+				'roll_number'  => sanitize_text_field( $_POST['roll_number'] ?? '' ),
+				'dob'          => sanitize_text_field( $_POST['dob'] ?? '' ),
+				'gender'       => sanitize_text_field( $_POST['gender'] ?? '' ),
+				'parent_name'  => sanitize_text_field( $_POST['parent_name'] ?? '' ),
+				'parent_phone' => sanitize_text_field( $_POST['parent_phone'] ?? '' ),
+				'address'      => sanitize_textarea_field( $_POST['address'] ?? '' ),
+				'status'       => 'active',
+			);
+			$class_id = intval( $_POST['class_id'] ?? 0 );
+
+			if ( empty( $student_data['first_name'] ) || empty( $student_data['last_name'] ) || empty( $class_id ) ) {
+				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( 'First Name, Last Name, and Class are required.' ) ) );
+				exit;
+			}
+
+			// Auto-generate Roll Number if empty.
+			if ( empty( $student_data['roll_number'] ) ) {
+				$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT ) . '-' . rand( 100, 999 );
+			}
+
+			// Generate dummy email if empty.
+			if ( empty( $student_data['email'] ) ) {
+				$student_data['email'] = strtolower( preg_replace( '/[^a-z0-9]/i', '', $student_data['roll_number'] ) ) . '@school.local';
+			}
+
+			$student_id = 0;
+			$existing_student = null;
+			$redirect_message = '';
+
+			// Check if student exists by roll number or email.
+			if ( ! empty( $student_data['roll_number'] ) ) {
+				$existing_student = Student::get_by_roll_number( $student_data['roll_number'] );
+			}
+			if ( ! $existing_student && ! empty( $student_data['email'] ) && strpos( $student_data['email'], '@school.local' ) === false ) {
+				$user = get_user_by( 'email', $student_data['email'] );
+				if ( $user ) {
+					$existing_student = Student::get_by_user_id( $user->ID );
+				}
+			}
+
+			if ( $existing_student ) {
+				// Update existing student.
+				$student_id = $existing_student->id;
+				Student::update( $student_id, $student_data );
+				$redirect_message = 'student_updated_and_enrolled';
+			} else {
+				// Create new student.
+				$student_id = Student::add( $student_data );
+				if ( is_wp_error( $student_id ) ) {
+					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( $student_id->get_error_message() ) ) );
+					exit;
+				}
+				$redirect_message = 'student_created_and_enrolled';
+			}
+
+			// Enroll the student.
+			if ( $student_id > 0 ) {
+				$enrollment_result = Enrollment::add( array( 'student_id' => $student_id, 'class_id' => $class_id ) );
+
+				if ( is_wp_error( $enrollment_result ) && 'duplicate_enrollment' === $enrollment_result->get_error_code() ) {
+					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
+				} else {
+					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=' . $redirect_message ) );
+				}
+			} else {
+				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( 'Could not create or find student.' ) ) );
+			}
+			exit;
 		}
 
 		// Handle class form submission.

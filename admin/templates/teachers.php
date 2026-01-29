@@ -33,6 +33,15 @@ $employee_id    = $is_edit ? $teacher->employee_id : '';
 $qualifications = $is_edit ? $teacher->qualification : '';
 $status         = $is_edit ? $teacher->status : 'active';
 
+$message = '';
+if ( isset( $_GET['sms_message'] ) ) {
+	$sms_message = sanitize_text_field( $_GET['sms_message'] );
+	if ( 'teachers_bulk_deleted' === $sms_message ) {
+		$count = intval( $_GET['count'] ?? 0 );
+		$message = sprintf( __( '%d teachers deleted successfully.', 'school-management-system' ), $count );
+	}
+}
+
 ?>
 <style>
 /* Responsive styles for the teachers list */
@@ -68,6 +77,10 @@ $status         = $is_edit ? $teacher->status : 'active';
 </style>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Teachers', 'school-management-system' ); ?></h1>
+
+	<?php if ( ! empty( $message ) ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+	<?php endif; ?>
 
 	<!-- Add/Edit Form -->
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
@@ -185,9 +198,21 @@ $status         = $is_edit ? $teacher->status : 'active';
 	</form>
 	<div style="clear: both;"></div>
 
+	<form method="post" action="">
+	<?php wp_nonce_field( 'sms_bulk_delete_teachers_nonce', 'sms_bulk_delete_teachers_nonce' ); ?>
+	<div class="tablenav top">
+		<div class="alignleft actions bulkactions">
+			<select name="action">
+				<option value="-1"><?php esc_html_e( 'Bulk Actions', 'school-management-system' ); ?></option>
+				<option value="bulk_delete_teachers"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></option>
+			</select>
+			<input type="submit" class="button action" value="<?php esc_attr_e( 'Apply', 'school-management-system' ); ?>">
+		</div>
+	</div>
 	<table class="wp-list-table widefat fixed striped teachers-table">
 		<thead>
 			<tr>
+				<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-teachers" type="checkbox"></td>
 				<th><?php esc_html_e( 'ID', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Employee ID', 'school-management-system' ); ?></th>
@@ -210,6 +235,7 @@ $status         = $is_edit ? $teacher->status : 'active';
 				foreach ( $teachers as $teacher ) {
 					?>
 					<tr class="teacher-row">
+						<th scope="row" class="check-column"><input type="checkbox" name="teacher_ids[]" value="<?php echo intval( $teacher->id ); ?>"></th>
 						<td data-label="<?php esc_attr_e( 'ID', 'school-management-system' ); ?>"><?php echo intval( $teacher->id ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Name', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->first_name . ' ' . $teacher->last_name ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Employee ID', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->employee_id ); ?></td>
@@ -232,11 +258,12 @@ $status         = $is_edit ? $teacher->status : 'active';
 			} else {
 				?>
 				<tr>
-					<td colspan="8"><?php esc_html_e( 'No teachers found', 'school-management-system' ); ?></td>
+					<td colspan="9"><?php esc_html_e( 'No teachers found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
 			?>
 		</tbody>
 	</table>
+	</form>
 </div>

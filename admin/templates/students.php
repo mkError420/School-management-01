@@ -109,10 +109,10 @@ if ( isset( $_GET['sms_message'] ) ) {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="class_id"><?php esc_html_e( 'Class', 'school-management-system' ); ?></label>
+						<label for="class_id"><?php esc_html_e( 'Class *', 'school-management-system' ); ?></label>
 					</th>
 					<td>
-						<select name="class_id" id="class_id">
+						<select name="class_id" id="class_id" required>
 							<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
 							<?php
 							$classes = Classm::get_all( array(), 100 );
@@ -260,13 +260,23 @@ if ( isset( $_GET['sms_message'] ) ) {
 		</thead>
 		<tbody>
 			<?php
+			global $wpdb;
+			$students_table = $wpdb->prefix . 'sms_students';
+			$enrollments_table = $wpdb->prefix . 'sms_enrollments';
+
+			$sql = "SELECT DISTINCT s.* FROM {$students_table} s JOIN {$enrollments_table} e ON s.id = e.student_id WHERE 1=1";
+
 			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
 			if ( ! empty( $search_term ) ) {
-				$students = Student::search( $search_term );
-			} else {
-				$students = Student::get_all( array(), 50 );
+				$search_like = '%' . $wpdb->esc_like( $search_term ) . '%';
+				$sql .= $wpdb->prepare( " AND (s.first_name LIKE %s OR s.last_name LIKE %s OR s.email LIKE %s OR s.roll_number LIKE %s)", $search_like, $search_like, $search_like, $search_like );
 			}
 
+			// Simple pagination could be added here later if needed.
+			$sql .= " ORDER BY s.id DESC LIMIT 50";
+
+			$students = $wpdb->get_results( $sql );
+			
 			if ( ! empty( $students ) ) {
 				foreach ( $students as $student ) {
 					$class_name = '';

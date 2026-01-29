@@ -152,4 +152,28 @@ jQuery(document).ready(function ($) {
 		var isChecked = $(this).prop('checked');
 		$('input[name="student_ids[]"]').prop('checked', isChecked);
 	});
+
+	// Select All checkbox for bulk actions (Classes)
+	$('#cb-select-all-classes').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="class_ids[]"]').prop('checked', isChecked);
+	});
+
+	// Select All checkbox for bulk actions (Teachers)
+	$('#cb-select-all-teachers').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="teacher_ids[]"]').prop('checked', isChecked);
+	});
+
+	// Select All checkbox for bulk actions (Subjects)
+	$('#cb-select-all-subjects').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="subject_ids[]"]').prop('checked', isChecked);
+	});
+
+	// Select All checkbox for bulk actions (Enrollments)
+	$('#cb-select-all-enrollments').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="enrollment_ids[]"]').prop('checked', isChecked);
+	});
 });

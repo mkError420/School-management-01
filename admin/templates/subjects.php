@@ -24,9 +24,22 @@ if ( 'edit' === $action && $subject_id ) {
 	$is_edit = true;
 }
 
+$message = '';
+if ( isset( $_GET['sms_message'] ) ) {
+	$sms_message = sanitize_text_field( $_GET['sms_message'] );
+	if ( 'subjects_bulk_deleted' === $sms_message ) {
+		$count = intval( $_GET['count'] ?? 0 );
+		$message = sprintf( __( '%d subjects deleted successfully.', 'school-management-system' ), $count );
+	}
+}
+
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Subjects', 'school-management-system' ); ?></h1>
+
+	<?php if ( ! empty( $message ) ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+	<?php endif; ?>
 
 	<!-- Add/Edit Form -->
 	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; border-radius: 4px;">
@@ -96,9 +109,21 @@ if ( 'edit' === $action && $subject_id ) {
 	</form>
 	<div style="clear: both;"></div>
 
+	<form method="post" action="">
+	<?php wp_nonce_field( 'sms_bulk_delete_subjects_nonce', 'sms_bulk_delete_subjects_nonce' ); ?>
+	<div class="tablenav top">
+		<div class="alignleft actions bulkactions">
+			<select name="action">
+				<option value="-1"><?php esc_html_e( 'Bulk Actions', 'school-management-system' ); ?></option>
+				<option value="bulk_delete_subjects"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></option>
+			</select>
+			<input type="submit" class="button action" value="<?php esc_attr_e( 'Apply', 'school-management-system' ); ?>">
+		</div>
+	</div>
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
+				<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-subjects" type="checkbox"></td>
 				<th><?php esc_html_e( 'ID', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Subject Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Subject Code', 'school-management-system' ); ?></th>
@@ -118,6 +143,7 @@ if ( 'edit' === $action && $subject_id ) {
 				foreach ( $subjects as $subject ) {
 					?>
 					<tr>
+						<th scope="row" class="check-column"><input type="checkbox" name="subject_ids[]" value="<?php echo intval( $subject->id ); ?>"></th>
 						<td><?php echo intval( $subject->id ); ?></td>
 						<td><?php echo esc_html( $subject->subject_name ); ?></td>
 						<td><?php echo esc_html( $subject->subject_code ); ?></td>
@@ -133,11 +159,12 @@ if ( 'edit' === $action && $subject_id ) {
 			} else {
 				?>
 				<tr>
-					<td colspan="5"><?php esc_html_e( 'No subjects found', 'school-management-system' ); ?></td>
+					<td colspan="6"><?php esc_html_e( 'No subjects found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
 			?>
 		</tbody>
 	</table>
+	</form>
 </div>
