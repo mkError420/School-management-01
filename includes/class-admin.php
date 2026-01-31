@@ -795,6 +795,7 @@ class Admin {
 
 			$output = fopen( 'php://output', 'w' );
 			fputcsv( $output, array( 'Student Name', 'Roll Number', 'Class', 'Exam', 'Subject', 'Marks', 'Percentage', 'Grade' ) );
+			fputcsv( $output, array( 'Student', 'Class', 'Exam', 'Subject', 'Marks', 'Grade' ) );
 
 			if ( ! empty( $results ) ) {
 				foreach ( $results as $row ) {
@@ -1548,7 +1549,7 @@ class Admin {
 
 		// Handle bulk result submission.
 		if ( isset( $_POST['sms_bulk_save_results'] ) ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( 'edit_posts' ) ) {
 				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
 			}
 
@@ -1566,6 +1567,12 @@ class Admin {
 					$obtained_marks = floatval( $data['marks'] );
 					$remarks = sanitize_textarea_field( $data['remarks'] );
 					
+					// Prevent teachers from updating published results.
+					$existing_result = Result::get( $existing_id );
+					if ( $existing_result && 'published' === $existing_result->status && ! current_user_can( 'manage_options' ) ) {
+						continue; // Skip this student.
+					}
+
 					// Check if result exists
 					global $wpdb;
 					$table = $wpdb->prefix . 'sms_results';
@@ -1587,6 +1594,79 @@ class Admin {
 					}
 				}
 				wp_redirect( admin_url( 'admin.php?page=sms-results&tab=bulk_entry&sms_message=results_saved' ) );
+				exit;
+			}
+		}
+
+		// Handle bulk result import via CSV.
+		if ( isset( $_POST['sms_import_results_csv'] ) ) {
+			if ( ! current_user_can( 'edit_posts' ) ) { // Allow teachers
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+			if ( ! isset( $_POST['sms_import_results_nonce'] ) || ! wp_verify_nonce( $_POST['sms_import_results_nonce'], 'sms_import_results_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			$exam_id = intval( $_POST['exam_id'] ?? 0 );
+			$subject_id = intval( $_POST['subject_id'] ?? 0 );
+
+			if ( empty( $exam_id ) || empty( $subject_id ) ) {
+				wp_redirect( admin_url( 'admin.php?page=sms-results&tab=bulk_entry&sms_error=missing_exam_subject' ) );
+				exit;
+			}
+
+			if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
+				$file = fopen( $_FILES['import_file']['tmp_name'], 'r' );
+				ini_set( 'auto_detect_line_endings', true );
+
+				fgetcsv( $file ); // Skip header row.
+				$imported = 0;
+				$failed = 0;
+				$last_error = '';
+
+				while ( ( $row = fgetcsv( $file ) ) !== false ) {
+					$row = array_pad( $row, 3, '' );
+					if ( empty( array_filter( $row ) ) ) {
+						continue;
+					}
+
+					$roll_number = sanitize_text_field( $row[0] );
+					$marks = floatval( $row[1] );
+					$remarks = sanitize_textarea_field( $row[2] );
+
+					$student = Student::get_by_roll_number( $roll_number );
+					if ( ! $student ) {
+						$failed++;
+						$last_error = "Student with roll number '{$roll_number}' not found.";
+						continue;
+					}
+
+					$result_data = array(
+						'student_id'     => $student->id,
+						'exam_id'        => $exam_id,
+						'subject_id'     => $subject_id,
+						'obtained_marks' => $marks,
+						'remarks'        => $remarks,
+						'status'         => 'published',
+					);
+
+					$existing_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}sms_results WHERE student_id = %d AND exam_id = %d AND subject_id = %d", $student->id, $exam_id, $subject_id ) );
+
+					if ( $existing_id ) {
+						$result = Result::update( $existing_id, $result_data );
+					} else {
+						$result = Result::add( $result_data );
+					}
+
+					if ( ! is_wp_error( $result ) && false !== $result ) {
+						$imported++;
+					} else {
+						$failed++;
+						$last_error = is_wp_error( $result ) ? $result->get_error_message() : 'Database error.';
+					}
+				}
+				fclose( $file );
+				wp_redirect( admin_url( 'admin.php?page=sms-results&tab=bulk_entry&sms_message=import_completed&count=' . $imported . '&failed=' . $failed . '&error=' . urlencode( $last_error ) ) );
 				exit;
 			}
 		}

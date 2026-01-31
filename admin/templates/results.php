@@ -1,7 +1,6 @@
 <?php
 /**
  * Results admin template.
- *
  * @package School_Management_System
  */
 
@@ -46,6 +45,14 @@ if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] )
 } elseif ( isset( $_GET['sms_message'] ) && 'results_bulk_deleted' === $_GET['sms_message'] ) {
 	$count = intval( $_GET['count'] ?? 0 );
 	$message = sprintf( __( '%d results deleted successfully.', 'school-management-system' ), $count );
+} elseif ( isset( $_GET['sms_message'] ) && 'import_completed' === $_GET['sms_message'] ) {
+	$count = intval( $_GET['count'] ?? 0 );
+	$failed = intval( $_GET['failed'] ?? 0 );
+	$error_msg = isset( $_GET['error'] ) ? sanitize_text_field( urldecode( $_GET['error'] ) ) : '';
+	$message = sprintf( __( 'CSV Import completed. %d results saved. %d failed.', 'school-management-system' ), $count, $failed );
+	if ( $failed > 0 && ! empty( $error_msg ) ) {
+		$message .= ' ' . sprintf( __( 'Last error: %s', 'school-management-system' ), $error_msg );
+	}
 }
 
 ?>
@@ -436,6 +443,53 @@ if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] )
 			<!-- Bulk Entry Tab -->
 			<div class="sms-panel">
 				<div class="sms-panel-header">
+					<h2><?php esc_html_e( 'Bulk Upload via CSV', 'school-management-system' ); ?></h2>
+				</div>
+				<div class="sms-panel-body">
+					<p><?php esc_html_e( 'Upload a CSV file with columns: `roll_number`, `obtained_marks`, `remarks`. Select the corresponding Exam and Subject below.', 'school-management-system' ); ?></p>
+					<form method="post" enctype="multipart/form-data">
+						<?php wp_nonce_field( 'sms_import_results_nonce', 'sms_import_results_nonce' ); ?>
+						<table class="form-table">
+							<tr>
+								<th scope="row"><label for="import_exam_id"><?php esc_html_e( 'Exam', 'school-management-system' ); ?></label></th>
+								<td>
+									<select name="exam_id" id="import_exam_id" required>
+										<option value=""><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></option>
+										<?php
+										foreach ( Exam::get_all( array(), 1000 ) as $exam ) {
+											echo '<option value="' . intval( $exam->id ) . '">' . esc_html( $exam->exam_name ) . '</option>';
+										}
+										?>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="import_subject_id"><?php esc_html_e( 'Subject', 'school-management-system' ); ?></label></th>
+								<td>
+									<select name="subject_id" id="import_subject_id" required>
+										<option value=""><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></option>
+										<?php
+										foreach ( Subject::get_all( array(), 1000 ) as $subject ) {
+											echo '<option value="' . intval( $subject->id ) . '">' . esc_html( $subject->subject_name ) . '</option>';
+										}
+										?>
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row"><label for="import_file"><?php esc_html_e( 'CSV File', 'school-management-system' ); ?></label></th>
+								<td><input type="file" name="import_file" id="import_file" accept=".csv" required /></td>
+							</tr>
+						</table>
+						<button type="submit" name="sms_import_results_csv" class="button button-primary"><?php esc_html_e( 'Import Results', 'school-management-system' ); ?></button>
+					</form>
+				</div>
+			</div>
+
+		<?php elseif ( 'bulk_entry' === $active_tab ) : ?>
+			<!-- Bulk Entry Tab -->
+			<div class="sms-panel">
+				<div class="sms-panel-header">
 					<h2><?php esc_html_e( 'Bulk Result Entry', 'school-management-system' ); ?></h2>
 				</div>
 				<div class="sms-panel-body">
@@ -516,15 +570,16 @@ if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] )
 										$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE student_id = %d AND exam_id = %d AND subject_id = %d", $student->id, $exam_id_filter, $subject_id_filter ) );
 										$marks = $existing ? $existing->obtained_marks : '';
 										$remarks = $existing ? $existing->remarks : '';
+										$is_locked = ( $existing && 'published' === $existing->status && ! current_user_can( 'manage_options' ) );
 										?>
 										<tr>
 											<td><?php echo esc_html( $student->roll_number ); ?></td>
 											<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
 											<td>
-												<input type="number" name="results[<?php echo intval( $student->id ); ?>][marks]" value="<?php echo esc_attr( $marks ); ?>" step="0.01" max="<?php echo esc_attr( $exam->total_marks ); ?>" style="width: 100px;">
+												<input type="number" name="results[<?php echo intval( $student->id ); ?>][marks]" value="<?php echo esc_attr( $marks ); ?>" step="0.01" max="<?php echo esc_attr( $exam->total_marks ); ?>" style="width: 100px;" <?php disabled( $is_locked, true ); ?>>
 											</td>
 											<td>
-												<input type="text" name="results[<?php echo intval( $student->id ); ?>][remarks]" value="<?php echo esc_attr( $remarks ); ?>" style="width: 100%;">
+												<input type="text" name="results[<?php echo intval( $student->id ); ?>][remarks]" value="<?php echo esc_attr( $remarks ); ?>" style="width: 100%;" <?php disabled( $is_locked, true ); ?>>
 											</td>
 										</tr>
 									<?php endforeach; ?>
@@ -540,6 +595,9 @@ if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] )
 									</select>
 								</label>
 								<button type="submit" name="sms_bulk_save_results" class="button button-primary button-large"><?php esc_html_e( 'Save All Results', 'school-management-system' ); ?></button>
+								<?php if ( $is_locked ) : ?>
+									<p class="description"><?php esc_html_e( 'Some results are published and locked. Only an administrator can make changes.', 'school-management-system' ); ?></p>
+								<?php endif; ?>
 							</div>
 						</form>
 					<?php endif; ?>

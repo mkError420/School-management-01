@@ -227,6 +227,21 @@ class Activator {
 		            UNIQUE KEY unique_result (student_id, exam_id, subject_id)
 		        ) $charset_collate;";
 		
+		        // Result History table.
+		        $result_history_table = $wpdb->prefix . 'sms_result_history';
+		        $sql_result_history   = "CREATE TABLE $result_history_table (
+		            id bigint(20) NOT NULL AUTO_INCREMENT,
+		            result_id mediumint(9) NOT NULL,
+		            user_id bigint(20) NOT NULL,
+		            changed_at datetime NOT NULL,
+		            old_marks decimal(5, 2),
+		            new_marks decimal(5, 2),
+		            old_remarks text,
+		            new_remarks text,
+		            PRIMARY KEY  (id),
+		            KEY result_id (result_id)
+		        ) $charset_collate;";
+
 		        // Timetable table.
 		        $timetable_table = $wpdb->prefix . 'sms_timetable';
 		        $sql_timetable   = "CREATE TABLE $timetable_table (
@@ -257,6 +272,7 @@ class Activator {
 		dbDelta( $sql_fees );
 		dbDelta( $sql_exams );
 		dbDelta( $sql_results );
+		dbDelta( $sql_result_history );
 		dbDelta( $sql_timetable );
 
 		// Post-update: Ensure existing paid fees have paid_amount set.

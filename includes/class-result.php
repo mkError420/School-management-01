@@ -76,6 +76,9 @@ class Result {
 			return false;
 		}
 
+		// Get old data for history log.
+		$old_result = self::get( $result_id );
+
 		// Recalculate percentage and grade if marks changed.
 		if ( ! empty( $result_data['obtained_marks'] ) ) {
 			$result = self::get( $result_id );
@@ -90,7 +93,35 @@ class Result {
 			}
 		}
 
-		return Database::update( 'results', $result_data, array( 'id' => $result_id ) );
+		$result = Database::update( 'results', $result_data, array( 'id' => $result_id ) );
+
+		// Log the change if successful and data has changed.
+		if ( false !== $result && $old_result ) {
+			$history_data = array(
+				'result_id'  => $result_id,
+				'user_id'    => get_current_user_id(),
+				'changed_at' => current_time( 'mysql' ),
+			);
+			$has_changed = false;
+
+			if ( isset( $result_data['obtained_marks'] ) && (float) $result_data['obtained_marks'] !== (float) $old_result->obtained_marks ) {
+				$history_data['old_marks'] = $old_result->obtained_marks;
+				$history_data['new_marks'] = $result_data['obtained_marks'];
+				$has_changed = true;
+			}
+
+			if ( isset( $result_data['remarks'] ) && $result_data['remarks'] !== $old_result->remarks ) {
+				$history_data['old_remarks'] = $old_result->remarks;
+				$history_data['new_remarks'] = $result_data['remarks'];
+				$has_changed = true;
+			}
+
+			if ( $has_changed ) {
+				Database::insert( 'result_history', $history_data );
+			}
+		}
+
+		return $result;
 	}
 
 	/**
