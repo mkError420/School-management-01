@@ -10,6 +10,7 @@ use School_Management_System\Exam;
 use School_Management_System\Student;
 use School_Management_System\Classm;
 use School_Management_System\Subject;
+use School_Management_System\Enrollment;
 
 if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
@@ -24,6 +25,7 @@ $result_id = intval( $_GET['id'] ?? 0 );
 $class_id_filter = intval( $_GET['class_id'] ?? 0 );
 $exam_id_filter = intval( $_GET['exam_id'] ?? 0 );
 $subject_id_filter = intval( $_GET['subject_id'] ?? 0 );
+$student_id_filter = intval( $_GET['student_id'] ?? 0 );
 
 if ( 'edit' === $action && $result_id ) {
 	$result = Result::get( $result_id );
@@ -54,8 +56,8 @@ $show_form = ( 'add' === $action || $is_edit );
  .sms-results-subtitle { margin: 6px 0 0; opacity: 0.92; font-size: 13px; }
  .sms-results-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
  .sms-cta-btn {
- 	background: rgba(255,255,255,0.16);
- 	border: 1px solid rgba(255,255,255,0.26);
+ 	background: #2c3e50;
+ 	border: 1px solid #2c3e50;
  	color: #fff;
  	padding: 10px 14px;
  	border-radius: 10px;
@@ -66,7 +68,7 @@ $show_form = ( 'add' === $action || $is_edit );
  	gap: 8px;
  	cursor: pointer;
  }
- .sms-cta-btn:hover { background: rgba(255,255,255,0.24); color: #fff; }
+ .sms-cta-btn:hover { background: #1a252f; color: #fff; border-color: #1a252f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
  .sms-panel {
  	background: #fff;
@@ -150,7 +152,7 @@ $show_form = ( 'add' === $action || $is_edit );
 											$class = Classm::get( $exam->class_id );
 											$class_name = $class ? $class->class_name : 'Unknown Class';
 											?>
-											<option value="<?php echo intval( $exam->id ); ?>" <?php selected( $result ? $result->exam_id : 0, $exam->id ); ?>>
+											<option value="<?php echo intval( $exam->id ); ?>" data-class-id="<?php echo intval( $exam->class_id ); ?>" <?php selected( $result ? $result->exam_id : 0, $exam->id ); ?>>
 												<?php echo esc_html( $exam->exam_name . ' (' . $class_name . ')' ); ?>
 											</option>
 											<?php
@@ -183,10 +185,20 @@ $show_form = ( 'add' === $action || $is_edit );
 									<select name="student_id" id="student_id" required>
 										<option value=""><?php esc_html_e( 'Select Student', 'school-management-system' ); ?></option>
 										<?php
+										// Pre-fetch enrollments to map students to classes.
+										$student_class_map = array();
+										$all_enrollments = Enrollment::get_all( array( 'status' => 'active' ), 5000 );
+										if ( ! empty( $all_enrollments ) ) {
+											foreach ( $all_enrollments as $enr ) {
+												$student_class_map[ $enr->student_id ] = $enr->class_id;
+											}
+										}
+
 										$students = Student::get_all( array(), 1000 );
 										foreach ( $students as $student ) {
+											$s_class_id = isset( $student_class_map[ $student->id ] ) ? $student_class_map[ $student->id ] : 0;
 											?>
-											<option value="<?php echo intval( $student->id ); ?>" <?php selected( $result ? $result->student_id : 0, $student->id ); ?>>
+											<option value="<?php echo intval( $student->id ); ?>" data-class-id="<?php echo intval( $s_class_id ); ?>" <?php selected( $result ? $result->student_id : 0, $student->id ); ?>>
 												<?php echo esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ); ?>
 											</option>
 											<?php
@@ -210,6 +222,52 @@ $show_form = ( 'add' === $action || $is_edit );
 							<button type="submit" name="sms_add_result" class="button button-primary"><?php esc_html_e( 'Add Result', 'school-management-system' ); ?></button>
 						<?php endif; ?>
 					</form>
+					<script>
+					jQuery(document).ready(function($) {
+						function filterStudents() {
+							var examSelect = $('#exam_id');
+							var studentSelect = $('#student_id');
+							var selectedOption = examSelect.find('option:selected');
+							var classId = selectedOption.data('class-id');
+							var currentStudent = studentSelect.val();
+
+							if (!classId) {
+								studentSelect.find('option').show();
+								return;
+							}
+
+							var validSelection = false;
+
+							studentSelect.find('option').each(function() {
+								var option = $(this);
+								var studentClassId = option.data('class-id');
+								
+								if (option.val() === "") {
+									option.show();
+									return;
+								}
+
+								if (studentClassId == classId) {
+									option.show();
+									if (option.val() == currentStudent) validSelection = true;
+								} else {
+									option.hide();
+								}
+							});
+
+							if (!validSelection) {
+								studentSelect.val('');
+							}
+						}
+
+						$('#exam_id').on('change', filterStudents);
+						
+						// Run on load if exam is selected
+						if ($('#exam_id').val()) {
+							filterStudents();
+						}
+					});
+					</script>
 				</div>
 			</div>
 		<?php else : ?>
@@ -249,8 +307,25 @@ $show_form = ( 'add' === $action || $is_edit );
 								}
 								?>
 							</select>
+							
+							<select name="student_id">
+								<option value=""><?php esc_html_e( 'All Students', 'school-management-system' ); ?></option>
+								<?php
+								if ( $class_id_filter ) {
+									$students = Student::get_by_class( $class_id_filter );
+								} else {
+									$students = Student::get_all( array(), 1000 );
+								}
+								foreach ( $students as $student ) {
+									echo '<option value="' . intval( $student->id ) . '" ' . selected( $student_id_filter, $student->id, false ) . '>' . esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ) . '</option>';
+								}
+								?>
+							</select>
 
 							<button type="submit" class="button"><?php esc_html_e( 'Filter', 'school-management-system' ); ?></button>
+							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-results&action=export_results&class_id=' . $class_id_filter . '&exam_id=' . $exam_id_filter . '&subject_id=' . $subject_id_filter . '&student_id=' . $student_id_filter ), 'sms_export_results_nonce' ) ); ?>" class="button button-primary" style="margin-left: 5px;">
+								<span class="dashicons dashicons-download" style="line-height: 1.3;"></span> <?php esc_html_e( 'Export CSV', 'school-management-system' ); ?>
+							</a>
 						</div>
 					</form>
 				</div>
@@ -273,6 +348,7 @@ $show_form = ( 'add' === $action || $is_edit );
 						'class_id'   => $class_id_filter,
 						'exam_id'    => $exam_id_filter,
 						'subject_id' => $subject_id_filter,
+						'student_id' => $student_id_filter,
 					);
 					$results = Result::get_by_filters( $filters );
 

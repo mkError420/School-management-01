@@ -771,6 +771,49 @@ class Admin {
 			exit;
 		}
 
+		// Handle Results Export.
+		if ( isset( $_GET['action'] ) && 'export_results' === $_GET['action'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_export_results_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$filters = array(
+				'class_id'   => ! empty( $_GET['class_id'] ) ? intval( $_GET['class_id'] ) : '',
+				'exam_id'    => ! empty( $_GET['exam_id'] ) ? intval( $_GET['exam_id'] ) : '',
+				'subject_id' => ! empty( $_GET['subject_id'] ) ? intval( $_GET['subject_id'] ) : '',
+				'student_id' => ! empty( $_GET['student_id'] ) ? intval( $_GET['student_id'] ) : '',
+			);
+
+			$results = Result::get_by_filters( $filters );
+
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=exam-results-' . date( 'Y-m-d' ) . '.csv' );
+
+			$output = fopen( 'php://output', 'w' );
+			fputcsv( $output, array( 'Student Name', 'Roll Number', 'Class', 'Exam', 'Subject', 'Marks', 'Percentage', 'Grade' ) );
+
+			if ( ! empty( $results ) ) {
+				foreach ( $results as $row ) {
+					fputcsv( $output, array(
+						$row->first_name . ' ' . $row->last_name,
+						$row->roll_number,
+						$row->class_name,
+						$row->exam_name,
+						$row->subject_name,
+						$row->obtained_marks,
+						number_format( $row->percentage, 2 ) . '%',
+						$row->grade,
+					) );
+				}
+			}
+			fclose( $output );
+			exit;
+		}
+
 		// Handle Student Import.
 		if ( isset( $_POST['sms_import_students'] ) ) {
 			if ( ! isset( $_POST['sms_import_nonce'] ) || ! wp_verify_nonce( $_POST['sms_import_nonce'], 'sms_import_students_nonce' ) ) {
