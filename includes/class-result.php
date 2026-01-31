@@ -19,7 +19,7 @@ class Result {
 	 * @return int|false Result ID on success, false on failure.
 	 */
 	public static function add( $result_data ) {
-		if ( empty( $result_data['student_id'] ) || empty( $result_data['exam_id'] ) || empty( $result_data['obtained_marks'] ) ) {
+		if ( empty( $result_data['student_id'] ) || empty( $result_data['exam_id'] ) || ! isset( $result_data['obtained_marks'] ) ) {
 			return false;
 		}
 
@@ -286,7 +286,7 @@ class Result {
 
 		$sql = "SELECT r.*, 
 				s.first_name, s.last_name, s.roll_number, 
-				e.exam_name, e.total_marks, e.passing_marks,
+				e.exam_name, e.total_marks, e.passing_marks, e.exam_date,
 				c.class_name, 
 				sub.subject_name 
 				FROM $results_table r

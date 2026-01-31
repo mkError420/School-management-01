@@ -210,6 +210,45 @@ jQuery(document).ready(function ($) {
 		$('input[name="result_ids[]"]').prop('checked', isChecked);
 	});
 
+	// Add Result via AJAX
+	$('#sms-add-result-form').on('submit', function (e) {
+		e.preventDefault();
+		
+		var $form = $(this);
+		var $btn = $form.find('button[type="submit"]');
+		var originalText = $btn.text();
+		
+		$btn.prop('disabled', true).text('Saving...');
+		
+		var formData = {
+			action: 'sms_add_result',
+			nonce: smsAdmin.nonce,
+			student_id: $('#student_id').val(),
+			exam_id: $('#exam_id').val(),
+			subject_id: $('#subject_id').val(),
+			obtained_marks: $('#obtained_marks').val()
+		};
+		
+		$.ajax({
+			url: smsAdmin.ajaxurl,
+			type: 'POST',
+			data: formData,
+			success: function (response) {
+				$btn.prop('disabled', false).text(originalText);
+				if (response.success) {
+					alert(response.data.message);
+					location.reload();
+				} else {
+					alert('Error: ' + response.data);
+				}
+			},
+			error: function () {
+				$btn.prop('disabled', false).text(originalText);
+				alert('An error occurred. Please try again.');
+			}
+		});
+	});
+
 	// Handle voucher download (Global)
 	$(document).on('click', '.sms-voucher-btn', function(e) {
 		e.preventDefault();
