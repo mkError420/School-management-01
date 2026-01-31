@@ -65,7 +65,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 
 $total_students = Student::count();
 $active_students = Student::count( array( 'status' => 'active' ) );
-$inactive_students = Student::count( array( 'status' => 'inactive' ) );
+$pending_students = Student::count( array( 'status' => 'pending' ) );
 
 ?>
 <style>
@@ -244,10 +244,10 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 				</div>
 			</div>
 			<div class="sms-student-stat">
-				<div class="sms-student-stat-icon inactive"><span class="dashicons dashicons-minus"></span></div>
+				<div class="sms-student-stat-icon" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);"><span class="dashicons dashicons-clock"></span></div>
 				<div>
-					<div class="sms-student-stat-number"><?php echo intval( $inactive_students ); ?></div>
-					<div class="sms-student-stat-label"><?php esc_html_e( 'Inactive', 'school-management-system' ); ?></div>
+					<div class="sms-student-stat-number"><?php echo intval( $pending_students ); ?></div>
+					<div class="sms-student-stat-label"><?php esc_html_e( 'Pending', 'school-management-system' ); ?></div>
 				</div>
 			</div>
 			<div class="sms-student-stat">
@@ -290,9 +290,10 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 		<thead>
 			<tr>
 				<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox"></td>
-				<th><?php esc_html_e( 'Name', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
-				<th><?php esc_html_e( 'Parent Phone', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Class Name', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Enrollment Date', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
 		</thead>
@@ -309,12 +310,14 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 			if ( ! empty( $students ) ) {
 				foreach ( $students as $student ) {
 					$class_name = '';
+					$enrollment_date = '';
 					$enrollments = Enrollment::get_student_enrollments( $student->id );
 					if ( ! empty( $enrollments ) ) {
 						$class_obj = Classm::get( $enrollments[0]->class_id );
 						if ( $class_obj ) {
 							$class_name = $class_obj->class_name;
 						}
+						$enrollment_date = $enrollments[0]->enrollment_date ?? $student->enrollment_date ?? '';
 					}
 					$delete_url = wp_nonce_url( admin_url( 'admin.php?page=sms-students&action=delete&id=' . $student->id ), 'sms_delete_student_nonce', '_wpnonce' );
 					?>
@@ -322,7 +325,8 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 						<th scope="row" class="check-column"><input type="checkbox" name="student_ids[]" value="<?php echo intval( $student->id ); ?>"></th>
 						<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
 						<td><?php echo esc_html( $class_name ); ?></td>
-						<td><?php echo esc_html( $student->parent_phone ?? '' ); ?></td>
+						<td><?php echo esc_html( $student->roll_number ?? '' ); ?></td>
+						<td><?php echo esc_html( $enrollment_date ? date( 'Y-m-d', strtotime( $enrollment_date ) ) : '' ); ?></td>
 						<td>
 							<div class="sms-row-actions">
 								<button class="sms-row-action-btn details toggle-details-btn" data-target="#details-<?php echo intval( $student->id ); ?>">
@@ -341,15 +345,15 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 						</td>
 					</tr>
 					<tr id="details-<?php echo intval( $student->id ); ?>" class="student-details-row" style="display: none;">
-						<td colspan="5">
+						<td colspan="6">
 							<ul class="student-details-list">
 								<li><strong><?php esc_html_e( 'ID', 'school-management-system' ); ?>:</strong> <?php echo intval( $student->id ); ?></li>
-								<li><strong><?php esc_html_e( 'Email', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->email ); ?></li>
 								<li><strong><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->roll_number ?? '' ); ?></li>
 								<li><strong><?php esc_html_e( 'Date of Birth', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->dob ); ?></li>
 								<li><strong><?php esc_html_e( 'Gender', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->gender ); ?></li>
 								<li><strong><?php esc_html_e( 'Address', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->address ); ?></li>
 								<li><strong><?php esc_html_e( 'Parent Name', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->parent_name ); ?></li>
+								<li><strong><?php esc_html_e( 'Parent Phone', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->parent_phone ); ?></li>
 								<li><strong><?php esc_html_e( 'Status', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->status ); ?></li>
 							</ul>
 						</td>
@@ -359,7 +363,7 @@ $inactive_students = Student::count( array( 'status' => 'inactive' ) );
 			} else {
 				?>
 				<tr>
-					<td colspan="5"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
+					<td colspan="6"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}

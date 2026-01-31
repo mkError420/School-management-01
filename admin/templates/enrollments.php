@@ -154,6 +154,7 @@ $students_count = Student::count();
  }
  .sms-status-pill.active { background: rgba(40, 167, 69, 0.12); color: #155724; border-color: rgba(40, 167, 69, 0.28); }
  .sms-status-pill.pending { background: rgba(255, 193, 7, 0.12); color: #856404; border-color: rgba(255, 193, 7, 0.28); }
+ .sms-status-pill.inactive { background: rgba(220, 53, 69, 0.12); color: #721c24; border-color: rgba(220, 53, 69, 0.28); }
 
  .sms-row-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; }
  .sms-row-action-btn {
@@ -291,32 +292,20 @@ $students_count = Student::count();
 				<div class="sms-enrollments-subtitle" style="opacity: 0.8; font-size: 12px; margin: 0;"><?php esc_html_e( 'Fill in student details and assign to class. Student will be automatically added to Students list.', 'school-management-system' ); ?></div>
 			</div>
 			<div class="sms-panel-body">
-				<div style="margin-bottom: 20px;">
-					<button type="button" class="sms-btn sms-btn-primary" onclick="showNewStudentForm()">
-						<span class="dashicons dashicons-plus-alt"></span>
-						<?php esc_html_e( 'Enroll New Student', 'school-management-system' ); ?>
-					</button>
-					<button type="button" class="sms-btn sms-btn-secondary" onclick="showExistingStudentForm()" style="margin-left: 10px;">
-						<span class="dashicons dashicons-user-add"></span>
-						<?php esc_html_e( 'Enroll Existing Student', 'school-management-system' ); ?>
-					</button>
-				</div>
-
 				<!-- New Student Form -->
-				<div id="new-student-form" style="display: block;">
-					<form method="post" action="">
-						<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
-						<div class="sms-form-grid">
+				<form method="post" action="">
+					<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
+					<div class="sms-form-grid">
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="first_name"><?php esc_html_e( 'Student Name *', 'school-management-system' ); ?></label>
+								<label class="sms-form-label" for="first_name"><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<input type="text" name="first_name" id="first_name" required placeholder="<?php esc_attr_e( 'Enter student full name', 'school-management-system' ); ?>" />
+									<input type="text" name="first_name" id="first_name" placeholder="<?php esc_attr_e( 'Enter student full name', 'school-management-system' ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="class_id"><?php esc_html_e( 'Class *', 'school-management-system' ); ?></label>
+								<label class="sms-form-label" for="class_id"><?php esc_html_e( 'Class Name', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<select name="class_id" id="class_id" required>
+									<select name="class_id" id="class_id">
 										<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
 										<?php
 										$classes = Classm::get_all( array(), 100 );
@@ -332,49 +321,24 @@ $students_count = Student::count();
 								</div>
 							</div>
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="email"><?php esc_html_e( 'Email', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<input type="email" name="email" id="email" placeholder="<?php esc_attr_e( 'student@email.com', 'school-management-system' ); ?>" />
-								</div>
-							</div>
-							<div class="sms-form-field">
 								<label class="sms-form-label" for="roll_number"><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
 									<input type="text" name="roll_number" id="roll_number" placeholder="<?php esc_attr_e( 'Auto-generated if empty', 'school-management-system' ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="dob"><?php esc_html_e( 'Date of Birth *', 'school-management-system' ); ?></label>
+								<label class="sms-form-label" for="enrollment_date"><?php esc_html_e( 'Enrollment Date', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<input type="date" name="dob" id="dob" required />
+									<input type="date" name="enrollment_date" id="enrollment_date" value="<?php echo esc_attr( date( 'Y-m-d' ) ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="gender"><?php esc_html_e( 'Gender *', 'school-management-system' ); ?></label>
+								<label class="sms-form-label" for="status"><?php esc_html_e( 'Status', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<select name="gender" id="gender" required>
-										<option value=""><?php esc_html_e( 'Select Gender', 'school-management-system' ); ?></option>
-										<option value="Male"><?php esc_html_e( 'Male', 'school-management-system' ); ?></option>
-										<option value="Female"><?php esc_html_e( 'Female', 'school-management-system' ); ?></option>
+									<select name="status" id="status">
+										<option value="active"><?php esc_html_e( 'Active', 'school-management-system' ); ?></option>
+										<option value="pending"><?php esc_html_e( 'Pending', 'school-management-system' ); ?></option>
 									</select>
-								</div>
-							</div>
-							<div class="sms-form-field">
-								<label class="sms-form-label" for="address"><?php esc_html_e( 'Address *', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<input type="text" name="address" id="address" required placeholder="<?php esc_attr_e( 'Student address', 'school-management-system' ); ?>" />
-								</div>
-							</div>
-							<div class="sms-form-field">
-								<label class="sms-form-label" for="parent_name"><?php esc_html_e( 'Parent Name *', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<input type="text" name="parent_name" id="parent_name" required placeholder="<?php esc_attr_e( 'Parent full name', 'school-management-system' ); ?>" />
-								</div>
-							</div>
-							<div class="sms-form-field">
-								<label class="sms-form-label" for="parent_phone"><?php esc_html_e( 'Parent Phone *', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<input type="text" name="parent_phone" id="parent_phone" required placeholder="<?php esc_attr_e( 'Parent contact number', 'school-management-system' ); ?>" />
 								</div>
 							</div>
 						</div>
@@ -385,71 +349,8 @@ $students_count = Student::count();
 							</button>
 						</div>
 					</form>
-				</div>
-
-				<!-- Existing Student Form -->
-				<div id="existing-student-form" style="display: none;">
-					<form method="post" action="">
-						<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
-						<div class="sms-form-grid">
-							<div class="sms-form-field">
-								<label class="sms-form-label" for="student_id"><?php esc_html_e( 'Student *', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<select name="student_id" id="student_id" required>
-										<option value=""><?php esc_html_e( 'Select Student', 'school-management-system' ); ?></option>
-										<?php
-										$students = Student::get_all( array(), 1000 );
-										foreach ( $students as $student ) {
-											?>
-											<option value="<?php echo intval( $student->id ); ?>">
-												<?php echo esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ); ?>
-											</option>
-											<?php
-										}
-										?>
-									</select>
-								</div>
-							</div>
-							<div class="sms-form-field">
-								<label class="sms-form-label" for="class_id_existing"><?php esc_html_e( 'Class *', 'school-management-system' ); ?></label>
-								<div class="sms-form-control">
-									<select name="class_id" id="class_id_existing" required>
-										<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
-										<?php
-										$classes = Classm::get_all( array(), 100 );
-										foreach ( $classes as $class ) {
-											?>
-											<option value="<?php echo intval( $class->id ); ?>">
-												<?php echo esc_html( $class->class_name ); ?>
-											</option>
-											<?php
-										}
-										?>
-									</select>
-								</div>
-							</div>
-						</div>
-						<div class="sms-form-actions">
-							<button type="submit" name="sms_enroll_existing_student" class="sms-btn sms-btn-primary">
-								<span class="dashicons dashicons-user-add"></span>
-								<?php esc_html_e( 'Enroll Existing Student', 'school-management-system' ); ?>
-							</button>
-						</div>
-					</form>
-				</div>
 			</div>
 		</div>
-
-		<script>
-		function showNewStudentForm() {
-			document.getElementById('new-student-form').style.display = 'block';
-			document.getElementById('existing-student-form').style.display = 'none';
-		}
-		function showExistingStudentForm() {
-			document.getElementById('new-student-form').style.display = 'none';
-			document.getElementById('existing-student-form').style.display = 'block';
-		}
-		</script>
 
 	<!-- Enrollments List -->
 		<div class="sms-panel">
@@ -506,8 +407,7 @@ $students_count = Student::count();
 					<tr>
 						<th scope="row" class="check-column"><input type="checkbox" name="enrollment_ids[]" value="<?php echo intval( $enrollment->id ); ?>"></th>
 						<td>
-							<strong><?php echo $student ? esc_html( $student->first_name . ' ' . $student->last_name ) : 'N/A'; ?></strong><br>
-							<span class="description" style="font-size: 12px; color: #6c757d;"><?php echo $student ? esc_html( $student->email ) : ''; ?></span>
+							<strong><?php echo $student ? esc_html( $student->first_name . ' ' . $student->last_name ) : 'N/A'; ?></strong>
 						</td>
 						<td><?php echo $class ? esc_html( $class->class_name ) : 'N/A'; ?></td>
 						<td><?php echo $student ? esc_html( $student->roll_number ) : 'N/A'; ?></td>

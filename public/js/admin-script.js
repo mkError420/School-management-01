@@ -42,38 +42,6 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
-	// Enroll student via AJAX
-	$('#sms-enrollment-form').on('submit', function (e) {
-		e.preventDefault();
-
-		const studentId = $(this).find('input[name="student_id"]').val();
-		const classId = $(this).find('input[name="class_id"]').val();
-		const subjectId = $(this).find('input[name="subject_id"]').val();
-
-		$.ajax({
-			url: smsAdmin.ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'sms_enroll_student',
-				nonce: smsAdmin.nonce,
-				student_id: studentId,
-				class_id: classId,
-				subject_id: subjectId,
-			},
-			success: function (response) {
-				if (response.success) {
-					alert(response.data);
-					location.reload();
-				} else {
-					alert('Error: ' + response.data);
-				}
-			},
-			error: function () {
-				alert('Failed to enroll student');
-			},
-		});
-	});
-
 	// Search functionality
 	$('.sms-search-form').on('submit', function (e) {
 		e.preventDefault();

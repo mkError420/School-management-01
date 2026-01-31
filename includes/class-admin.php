@@ -1239,138 +1239,14 @@ class Admin {
 			}
 		}
 
-		// Handle student form submission.
-		if ( isset( $_POST['sms_add_student'] ) || isset( $_POST['sms_edit_student'] ) ) {
-			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
-				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
-			}
-
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
-			}
-
-			$student_data = array(
-				'first_name'   => sanitize_text_field( $_POST['first_name'] ?? '' ),
-				'last_name'    => '.', // Default value as field is removed.
-				'email'        => sanitize_email( $_POST['email'] ?? '' ),
-				'roll_number'  => sanitize_text_field( $_POST['roll_number'] ?? '' ),
-				'dob'          => sanitize_text_field( $_POST['dob'] ?? '' ),
-				'gender'       => sanitize_text_field( $_POST['gender'] ?? '' ),
-				'parent_name'  => sanitize_text_field( $_POST['parent_name'] ?? '' ),
-				'parent_phone' => sanitize_text_field( $_POST['parent_phone'] ?? '' ),
-				'address'      => sanitize_textarea_field( $_POST['address'] ?? '' ),
-				'status'       => sanitize_text_field( $_POST['status'] ?? 'active' ),
-			);
-
-			$class_id = intval( $_POST['class_id'] ?? 0 );
-
-			// Auto-generate Roll Number if empty.
-			if ( empty( $student_data['roll_number'] ) ) {
-				if ( $class_id > 0 ) {
-					$class_obj = Classm::get( $class_id );
-					if ( $class_obj ) {
-						$prefix = preg_replace( '/[^A-Za-z0-9]/', '', $class_obj->class_code );
-						$count = Enrollment::count( array( 'class_id' => $class_id ) );
-						$sequence = $count + 1;
-						do {
-							$generated_roll = strtoupper( $prefix ) . '-' . date( 'Y' ) . '-' . str_pad( $sequence, 3, '0', STR_PAD_LEFT );
-							$exists = Student::get_by_roll_number( $generated_roll );
-							if ( $exists ) {
-								$sequence++;
-							}
-						} while ( $exists );
-						$student_data['roll_number'] = $generated_roll;
-					} else {
-						$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
-					}
-				} else {
-					$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT );
-				}
-			}
-
-			if ( isset( $_POST['sms_add_student'] ) ) {
-				$result = Student::add( $student_data );
-				if ( $result && ! is_wp_error( $result ) ) {
-					if ( $class_id > 0 ) {
-						Enrollment::add( array( 'student_id' => $result, 'class_id' => $class_id ) );
-					}
-					wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=student_added' ) );
-					exit;
-				} else {
-					$error_message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Failed to add student. Please ensure all required fields are filled correctly.', 'school-management-system' );
-					wp_die( $error_message );
-				}
-			} elseif ( isset( $_POST['sms_edit_student'] ) ) {
-				$student_id = intval( $_POST['student_id'] ?? 0 );
-				$result     = Student::update( $student_id, $student_data );
-				if ( false !== $result ) {
-					if ( $class_id > 0 ) {
-						// Update enrollment or add new.
-						$enrollments = Enrollment::get_student_enrollments( $student_id );
-						if ( ! empty( $enrollments ) ) {
-							Enrollment::update( $enrollments[0]->id, array( 'class_id' => $class_id ) );
-						} else {
-							Enrollment::add( array( 'student_id' => $student_id, 'class_id' => $class_id ) );
-						}
-					}
-					wp_redirect( admin_url( 'admin.php?page=sms-students&sms_message=student_updated' ) );
-					exit;
-				} else {
-					wp_die( esc_html__( 'Failed to update student.', 'school-management-system' ) );
-				}
-			}
-		}
-
-		// Handle enrollment of an existing student.
-		if ( isset( $_POST['sms_enroll_existing_student'] ) ) {
-			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
-				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
-			}
-
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
-			}
-
-			$enrollment_data = array(
-				'student_id' => intval( $_POST['student_id'] ?? 0 ),
-				'class_id'   => intval( $_POST['class_id'] ?? 0 ),
-			);
-
-			$result = Enrollment::add( $enrollment_data );
-			if ( is_wp_error( $result ) && 'duplicate_enrollment' === $result->get_error_code() ) {
-				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
-			} else {
-				wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollment_added' ) );
-			}
-			exit;
-		}
 		// Handle creation and enrollment of a new student.
-		if ( isset( $_POST['sms_create_and_enroll_student'] ) || isset( $_POST['sms_enroll_new_student'] ) || isset( $_POST['sms_enroll_existing_student'] ) ) {
+		if ( isset( $_POST['sms_create_and_enroll_student'] ) || isset( $_POST['sms_enroll_new_student'] ) ) {
 			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
 				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
 			}
 
 			if ( ! current_user_can( 'manage_options' ) ) {
 				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
-			}
-
-			// Handle existing student enrollment
-			if ( isset( $_POST['sms_enroll_existing_student'] ) ) {
-				$student_id = intval( $_POST['student_id'] ?? 0 );
-				$class_id = intval( $_POST['class_id'] ?? 0 );
-				
-				if ( empty( $student_id ) || empty( $class_id ) ) {
-					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( 'Student and Class are required.' ) ) );
-					exit;
-				}
-				
-				$enrollment_result = Enrollment::add( array( 'student_id' => $student_id, 'class_id' => $class_id ) );
-				if ( is_wp_error( $enrollment_result ) && 'duplicate_enrollment' === $enrollment_result->get_error_code() ) {
-					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
-				} else {
-					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=enrollment_added' ) );
-				}
-				exit;
 			}
 
 			// Handle new student enrollment
@@ -1378,41 +1254,34 @@ class Admin {
 			$student_data = array(
 				'first_name'   => sanitize_text_field( $_POST['first_name'] ?? '' ),
 				'last_name'    => '', // Using first_name as full name in new form
-				'email'        => sanitize_email( $_POST['email'] ?? '' ),
 				'roll_number'  => sanitize_text_field( $_POST['roll_number'] ?? '' ),
-				'dob'          => sanitize_text_field( $_POST['dob'] ?? '' ),
-				'gender'       => sanitize_text_field( $_POST['gender'] ?? '' ),
-				'parent_name'  => sanitize_text_field( $_POST['parent_name'] ?? '' ),
-				'parent_phone' => sanitize_text_field( $_POST['parent_phone'] ?? '' ),
-				'address'      => sanitize_textarea_field( $_POST['address'] ?? '' ),
-				'status'       => 'active',
+				'status'       => sanitize_text_field( $_POST['status'] ?? 'active' ),
 			);
 			$class_id = intval( $_POST['class_id'] ?? 0 );
+			$enrollment_date = sanitize_text_field( $_POST['enrollment_date'] ?? date( 'Y-m-d' ) );
 
-			// Auto-generate missing data
+			// Auto-generate missing data for fields not in the simplified form
 			if ( empty( $student_data['roll_number'] ) ) {
 				$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT ) . '-' . rand( 100, 999 );
 			}
-			if ( empty( $student_data['email'] ) ) {
-				$student_data['email'] = strtolower( preg_replace( '/[^a-z0-9]/i', '', $student_data['roll_number'] ) ) . '@school.local';
-			}
+			
+			// Always auto-generate email since field was removed from form
+			$student_data['email'] = strtolower( preg_replace( '/[^a-z0-9]/i', '', $student_data['roll_number'] ) ) . '@school.local';
+			
+			// Auto-generate missing fields that are no longer in the form
 			if ( empty( $student_data['first_name'] ) ) {
 				$student_data['first_name'] = 'Student ' . $student_data['roll_number'];
 			}
-			if ( empty( $student_data['dob'] ) ) {
-				$student_data['dob'] = '2000-01-01';
-			}
-			if ( empty( $student_data['gender'] ) ) {
-				$student_data['gender'] = 'Male';
-			}
-			if ( empty( $student_data['parent_name'] ) ) {
-				$student_data['parent_name'] = 'Parent of ' . $student_data['first_name'];
-			}
-			if ( empty( $student_data['parent_phone'] ) ) {
-				$student_data['parent_phone'] = '0000000000';
-			}
-			if ( empty( $student_data['address'] ) ) {
-				$student_data['address'] = 'Default Address';
+			
+			// Add missing required fields for Student model
+			$student_data['dob'] = '2000-01-01';
+			$student_data['gender'] = 'Male';
+			$student_data['parent_name'] = 'Parent of ' . $student_data['first_name'];
+			$student_data['parent_phone'] = '1234567890';
+			$student_data['address'] = 'School Address';
+			
+			if ( empty( $class_id ) ) {
+				$class_id = 1; // Default to first class if not selected
 			}
 
 			$student_id = 0;
@@ -1438,6 +1307,7 @@ class Admin {
 			} else {
 				// Create new student.
 				$student_id = Student::add( $student_data );
+				
 				if ( is_wp_error( $student_id ) ) {
 					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( $student_id->get_error_message() ) ) );
 					exit;
@@ -1447,7 +1317,12 @@ class Admin {
 
 			// Enroll the student.
 			if ( $student_id > 0 ) {
-				$enrollment_result = Enrollment::add( array( 'student_id' => $student_id, 'class_id' => $class_id ) );
+				$enrollment_result = Enrollment::add( array( 
+					'student_id' => $student_id, 
+					'class_id' => $class_id,
+					'enrollment_date' => $enrollment_date,
+					'status' => $student_data['status'],
+				) );
 
 				if ( is_wp_error( $enrollment_result ) && 'duplicate_enrollment' === $enrollment_result->get_error_code() ) {
 					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
