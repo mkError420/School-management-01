@@ -144,7 +144,7 @@ class Result {
 	 * @param float $passing_marks Passing marks.
 	 * @return string Grade.
 	 */
-	private static function calculate_grade( $percentage, $passing_marks ) {
+	public static function calculate_grade( $percentage, $passing_marks ) {
 		if ( $percentage < $passing_marks ) {
 			return 'F';
 		} elseif ( $percentage >= 80 ) {
@@ -173,6 +173,48 @@ class Result {
 		if ( $percentage >= 50 ) return 2.0;
 		if ( $percentage >= 40 ) return 1.0;
 		return 0.0;
+	}
+
+	/**
+	 * Get a student's rank in a specific exam based on total marks.
+	 *
+	 * @param int $student_id Student ID.
+	 * @param int $exam_id    Exam ID.
+	 * @return int The student's rank.
+	 */
+	public static function get_student_rank_in_exam( $student_id, $exam_id ) {
+		global $wpdb;
+		$results_table = $wpdb->prefix . 'sms_results';
+
+		// Get total marks for all students in the exam
+		$all_students_marks = $wpdb->get_results( $wpdb->prepare(
+			"SELECT student_id, SUM(obtained_marks) as total_marks 
+			 FROM {$results_table} 
+			 WHERE exam_id = %d 
+			 GROUP BY student_id 
+			 ORDER BY total_marks DESC",
+			$exam_id
+		) );
+
+		if ( empty( $all_students_marks ) ) {
+			return 0;
+		}
+
+		$rank = 0;
+		$current_rank = 0;
+		$last_marks = -1;
+		foreach ( $all_students_marks as $student_result ) {
+			$current_rank++;
+			if ( $student_result->total_marks !== $last_marks ) {
+				$rank = $current_rank;
+				$last_marks = $student_result->total_marks;
+			}
+			if ( (int) $student_result->student_id === (int) $student_id ) {
+				return $rank;
+			}
+		}
+
+		return 0; // Student not found in results
 	}
 
 	/**

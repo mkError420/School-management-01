@@ -120,10 +120,28 @@ class Shortcodes {
 			if ( ! empty( $exam_results ) ) {
 				foreach ( $exam_results as $exam_id => $subjects ) {
 					$exam = Exam::get( $exam_id );
+					
+					// Calculate Exam Summary for Header
+					$exam_total_obtained = 0;
+					$exam_total_max = 0;
+					foreach ( $subjects as $res ) {
+						$exam_total_obtained += $res->obtained_marks;
+						$exam_total_max += $exam->total_marks;
+					}
+					$exam_percentage = ( $exam_total_max > 0 ) ? ( $exam_total_obtained / $exam_total_max ) * 100 : 0;
+					$exam_grade = Result::calculate_grade( $exam_percentage, $exam->passing_marks );
+					$exam_gpa = Result::calculate_gpa( $exam_percentage );
 					?>
 					<div class="sms-exam-card" style="background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
 						<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
-							<h4 style="margin: 0; color: #2c3e50; font-size: 18px;"><?php echo esc_html( $exam->exam_name ); ?></h4>
+							<div>
+								<h4 style="margin: 0; color: #2c3e50; font-size: 18px;"><?php echo esc_html( $exam->exam_name ); ?></h4>
+								<div style="font-size: 13px; color: #666; margin-top: 4px;">
+									<span style="margin-right: 10px;"><strong><?php esc_html_e( 'Grade:', 'school-management-system' ); ?></strong> <?php echo esc_html( $exam_grade ); ?></span>
+									<span style="margin-right: 10px;"><strong><?php esc_html_e( 'GPA:', 'school-management-system' ); ?></strong> <?php echo number_format( $exam_gpa, 2 ); ?></span>
+									<span><strong><?php esc_html_e( 'Marks:', 'school-management-system' ); ?></strong> <?php echo floatval( $exam_total_obtained ) . ' / ' . floatval( $exam_total_max ); ?></span>
+								</div>
+							</div>
 							<span style="font-size: 12px; color: #666;"><?php echo esc_html( $exam->exam_date ); ?></span>
 						</div>
 						
@@ -165,13 +183,29 @@ class Shortcodes {
 								}
 								?>
 							</tbody>
-							<tfoot>
-								<tr style="background: #f0f8ff;">
-									<td style="padding: 10px; font-weight: bold;"><?php esc_html_e( 'Total', 'school-management-system' ); ?></td>
-									<td style="padding: 10px; text-align: center; font-weight: bold;"><?php echo $total_obtained; ?> / <?php echo $total_max; ?></td>
-									<td colspan="3" style="padding: 10px; text-align: right;">
-										<button onclick="window.print()" style="background: #2c3e50; color: #fff; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-											<?php esc_html_e( 'Print Result', 'school-management-system' ); ?>
+							<tfoot style="border-top: 2px solid #e0e0e0;">
+								<?php
+								$overall_percentage = ( $total_max > 0 ) ? ( $total_obtained / $total_max ) * 100 : 0;
+								$overall_grade      = Result::calculate_grade( $overall_percentage, $exam->passing_marks );
+								$pass_fail_status   = ( $overall_percentage >= $exam->passing_marks ) ? __( 'Pass', 'school-management-system' ) : __( 'Fail', 'school-management-system' );
+								$rank               = Result::get_student_rank_in_exam( $student->id, $exam_id );
+								?>
+								<tr style="background: #f0f8ff; font-weight: bold;">
+									<td style="padding: 10px;"><?php esc_html_e( 'Total / Summary', 'school-management-system' ); ?></td>
+									<td style="padding: 10px; text-align: center;"><?php echo esc_html( $total_obtained . ' / ' . $total_max ); ?></td>
+									<td style="padding: 10px; text-align: center;"><?php echo esc_html( $overall_grade ); ?></td>
+									<td style="padding: 10px; text-align: center;"><?php echo number_format( Result::calculate_gpa( $overall_percentage ), 2 ); ?></td>
+									<td style="padding: 10px; text-align: left; color: <?php echo 'Pass' === $pass_fail_status ? '#28a745' : '#dc3545'; ?>;"><?php echo esc_html( $pass_fail_status ); ?></td>
+								</tr>
+								<tr style="background: #eaf6ff;">
+									<td colspan="3" style="padding: 10px; text-align: left; font-size: 13px;">
+										<strong style="margin-right: 15px;"><?php esc_html_e( 'Overall Percentage:', 'school-management-system' ); ?></strong> <?php echo number_format( $overall_percentage, 2 ); ?>%
+										<strong style="margin-left: 25px; margin-right: 15px;"><?php esc_html_e( 'Class Rank:', 'school-management-system' ); ?></strong> <?php echo $rank > 0 ? esc_html( $rank ) : 'N/A'; ?>
+									</td>
+									<td colspan="2" style="padding: 10px; text-align: right;">
+										<button onclick="printResultCard(this)" style="background: #2c3e50; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+											<span class="dashicons dashicons-printer" style="vertical-align: middle; margin-right: 5px;"></span>
+											<?php esc_html_e( 'Print / Download PDF', 'school-management-system' ); ?>
 										</button>
 									</td>
 								</tr>
@@ -190,6 +224,59 @@ class Shortcodes {
 					<?php esc_html_e( 'Logout', 'school-management-system' ); ?>
 				</a>
 			</p>
+		</div>
+		<script>
+		function printResultCard(button) {
+			var card = button.closest('.sms-exam-card');
+			var studentInfo = document.querySelector('.sms-student-info').innerHTML;
+			var schoolName = "<?php echo esc_js( get_option( 'sms_settings' )['school_name'] ?? get_bloginfo( 'name' ) ); ?>";
+			var schoolLogo = "<?php echo esc_js( get_option( 'sms_settings' )['school_logo'] ?? '' ); ?>";
+
+			var printWindow = window.open('', '', 'height=800,width=1200');
+			printWindow.document.write('<html><head><title>Result Card</title>');
+			printWindow.document.write(`
+				<style>
+					@media print {
+						@page { size: A4; margin: 20mm; }
+						body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+					}
+					body { font-family: Arial, sans-serif; color: #333; }
+					.report-card { border: 2px solid #eee; padding: 20px; border-radius: 10px; }
+					.rc-header { text-align: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 20px; }
+					.rc-header img { max-height: 60px; }
+					.rc-header h1 { margin: 0; font-size: 24px; color: #2c3e50; }
+					.rc-header h2 { margin: 0; font-size: 18px; color: #666; font-weight: normal; }
+					.rc-student-info table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+					.rc-student-info th, .rc-student-info td { padding: 8px; text-align: left; border: 1px solid #eee; }
+					.rc-student-info th { background: #f9f9f9; width: 150px; }
+					.rc-results-table { width: 100%; border-collapse: collapse; }
+					.rc-results-table th, .rc-results-table td { padding: 10px; text-align: left; border: 1px solid #eee; }
+					.rc-results-table thead th { background: #f0f8ff; }
+					.rc-results-table tfoot { font-weight: bold; }
+					.rc-results-table tfoot td { background: #f0f8ff; }
+					.rc-footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; color: #888; }
+					.rc-signature { border-top: 1px solid #ccc; padding-top: 5px; width: 200px; text-align: center; }
+				</style>
+			`);
+			printWindow.document.write('</head><body>');
+			printWindow.document.write('<div class="report-card">');
+			printWindow.document.write('<div class="rc-header">');
+			if(schoolLogo) {
+				printWindow.document.write('<img src="' + schoolLogo + '" alt="School Logo" />');
+			}
+			printWindow.document.write('<div><h1>' + schoolName + '</h1><h2>Report Card</h2></div>');
+			printWindow.document.write('</div>');
+			printWindow.document.write('<div class="rc-student-info">' + studentInfo + '</div>');
+			printWindow.document.write('<div class="rc-results-table">' + card.innerHTML + '</div>');
+			printWindow.document.write('<div class="rc-footer"><div class="rc-signature">Class Teacher</div><div class="rc-signature">Principal</div></div>');
+			printWindow.document.write('</div>');
+			printWindow.document.write('</body></html>');
+			printWindow.document.close();
+			setTimeout(function() {
+				printWindow.print();
+			}, 500);
+		}
+		</script>
 		</div>
 		<?php
 		return ob_get_clean();
