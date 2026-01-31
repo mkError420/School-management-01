@@ -114,6 +114,688 @@ if ( isset( $_GET['sms_message'] ) ) {
 .sms-report-filters .filter-item { display: inline-block; margin-right: 15px; margin-bottom: 10px; }
 .sms-report-filters label { display: block; margin-bottom: 5px; font-weight: 600; }
 .sms-report-filters input, .sms-report-filters select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; }
+
+/* Unique Reports Section Design */
+.sms-reports-container {
+	max-width: 100%;
+	margin: 0;
+}
+
+/* Advanced Filter Card */
+.sms-filter-card {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border-radius: 16px;
+	margin-bottom: 30px;
+	box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+	overflow: hidden;
+}
+
+.sms-filter-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 25px;
+	color: white;
+}
+
+.sms-filter-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.sms-filter-actions .sms-toggle-filters {
+	background: rgba(255, 255, 255, 0.2);
+	border: 1px solid rgba(255, 255, 255, 0.3);
+	color: white;
+	padding: 8px 12px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.sms-filter-actions .sms-toggle-filters:hover {
+	background: rgba(255, 255, 255, 0.3);
+}
+
+.sms-filter-content {
+	background: white;
+	padding: 25px;
+}
+
+.sms-filter-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 20px;
+	margin-bottom: 20px;
+}
+
+.sms-filter-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.sms-filter-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+	color: #333;
+	margin-bottom: 8px;
+}
+
+.sms-filter-label .dashicons {
+	color: #667eea;
+}
+
+.sms-date-range {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sms-date-range input {
+	flex: 1;
+	padding: 10px 12px;
+	border: 2px solid #e1e5e9;
+	border-radius: 8px;
+	font-size: 14px;
+	transition: border-color 0.3s ease;
+}
+
+.sms-date-range input:focus {
+	outline: none;
+	border-color: #667eea;
+}
+
+.sms-date-separator {
+	color: #666;
+	font-weight: 500;
+}
+
+.sms-filter-select {
+	padding: 10px 12px;
+	border: 2px solid #e1e5e9;
+	border-radius: 8px;
+	font-size: 14px;
+	background: white;
+	transition: border-color 0.3s ease;
+}
+
+.sms-filter-select:focus {
+	outline: none;
+	border-color: #667eea;
+}
+
+.sms-filter-buttons {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.sms-generate-btn {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	color: white;
+	padding: 12px 24px;
+	border-radius: 8px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sms-generate-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.sms-export-btn {
+	background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+	border: none;
+	color: white;
+	padding: 12px 24px;
+	border-radius: 8px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sms-export-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* Statistics Cards Grid */
+.sms-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 20px;
+	margin-bottom: 30px;
+}
+
+.sms-stat-card {
+	background: white;
+	border-radius: 16px;
+	padding: 25px;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	position: relative;
+	overflow: hidden;
+}
+
+.sms-stat-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--card-color) 0%, var(--card-color-light) 100%);
+}
+
+.sms-stat-card:hover {
+	transform: translateY(-5px);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.sms-total-records {
+	--card-color: #667eea;
+	--card-color-light: #a8b8f8;
+}
+
+.sms-total-amount {
+	--card-color: #28a745;
+	--card-color-light: #71e891;
+}
+
+.sms-paid-amount {
+	--card-color: #17a2b8;
+	--card-color-light: #6ec9d8;
+}
+
+.sms-due-amount {
+	--card-color: #dc3545;
+	--card-color-light: #f86c7b;
+}
+
+.sms-stat-icon {
+	width: 60px;
+	height: 60px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, var(--card-color) 0%, var(--card-color-light) 100%);
+	color: white;
+}
+
+.sms-stat-icon .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+}
+
+.sms-stat-content {
+	flex: 1;
+}
+
+.sms-stat-number {
+	font-size: 28px;
+	font-weight: 700;
+	color: #2c3e50;
+	margin-bottom: 4px;
+}
+
+.sms-stat-label {
+	font-size: 14px;
+	color: #6c757d;
+	font-weight: 500;
+}
+
+/* Status Distribution */
+.sms-status-distribution {
+	background: white;
+	border-radius: 16px;
+	padding: 25px;
+	margin-bottom: 30px;
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.sms-status-distribution h3 {
+	margin: 0 0 20px 0;
+	color: #2c3e50;
+	font-size: 18px;
+}
+
+.sms-status-bars {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.sms-status-item {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+}
+
+.sms-status-info {
+	min-width: 120px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.sms-status-label {
+	font-weight: 600;
+	color: #333;
+}
+
+.sms-status-count {
+	background: #f8f9fa;
+	padding: 4px 8px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 700;
+	color: #666;
+}
+
+.sms-status-bar {
+	flex: 1;
+	height: 12px;
+	background: #e9ecef;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.sms-status-progress {
+	height: 100%;
+	border-radius: 6px;
+	transition: width 0.8s ease;
+}
+
+.sms-status-progress.sms-paid {
+	background: linear-gradient(90deg, #28a745 0%, #71e891 100%);
+}
+
+.sms-status-progress.sms-pending {
+	background: linear-gradient(90deg, #dc3545 0%, #f86c7b 100%);
+}
+
+.sms-status-progress.sms-partial {
+	background: linear-gradient(90deg, #ffc107 0%, #ffdb4d 100%);
+}
+
+/* Enhanced Data Table */
+.sms-data-table-container {
+	background: white;
+	border-radius: 16px;
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+}
+
+.sms-table-header {
+	background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+	color: white;
+	padding: 20px 25px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.sms-table-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.sms-record-count {
+	background: rgba(255, 255, 255, 0.2);
+	padding: 6px 12px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.sms-table-wrapper {
+	overflow-x: auto;
+}
+
+.sms-enhanced-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.sms-enhanced-table thead th {
+	background: #f8f9fa;
+	padding: 15px 12px;
+	text-align: left;
+	font-weight: 600;
+	color: #2c3e50;
+	border-bottom: 2px solid #e9ecef;
+	white-space: nowrap;
+}
+
+.sms-enhanced-table thead th .dashicons {
+	margin-right: 6px;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+.sms-enhanced-table tbody td {
+	padding: 15px 12px;
+	border-bottom: 1px solid #f1f3f4;
+	vertical-align: middle;
+}
+
+.sms-enhanced-table tbody tr:hover {
+	background: #f8f9fa;
+}
+
+.sms-even-row {
+	background: #ffffff;
+}
+
+.sms-odd-row {
+	background: #fafbfc;
+}
+
+.sms-overdue-row {
+	background: #fff5f5;
+}
+
+.sms-overdue-row:hover {
+	background: #fee;
+}
+
+/* Student Cell Styling */
+.sms-student-cell {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.sms-student-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	flex-shrink: 0;
+}
+
+.sms-student-avatar .dashicons {
+	font-size: 20px;
+	width: 20px;
+	height: 20px;
+}
+
+.sms-student-details {
+	flex: 1;
+}
+
+.sms-student-name {
+	font-weight: 600;
+	color: #2c3e50;
+	margin-bottom: 2px;
+}
+
+.sms-student-roll {
+	font-size: 12px;
+	color: #6c757d;
+}
+
+/* Class Badge */
+.sms-class-badge {
+	background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+	color: #1565c0;
+	padding: 6px 12px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+	border: 1px solid #90caf9;
+}
+
+/* Amount Cells */
+.sms-amount, .sms-paid-amount, .sms-due-amount {
+	font-weight: 700;
+	font-size: 15px;
+}
+
+.sms-positive {
+	color: #28a745;
+}
+
+.sms-negative {
+	color: #dc3545;
+}
+
+/* Enhanced Status Badge */
+.sms-status-badge-enhanced {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: 20px;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	border: 1px solid;
+}
+
+.sms-status-badge-enhanced.status-paid {
+	background: #d4edda;
+	color: #155724;
+	border-color: #c3e6cb;
+}
+
+.sms-status-badge-enhanced.status-pending {
+	background: #f8d7da;
+	color: #721c24;
+	border-color: #f5c6cb;
+}
+
+.sms-status-badge-enhanced.status-partially_paid {
+	background: #fff3cd;
+	color: #856404;
+	border-color: #ffeaa7;
+}
+
+.sms-status-badge-enhanced .dashicons {
+	font-size: 12px;
+	width: 12px;
+	height: 12px;
+}
+
+/* Date Info */
+.sms-date-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.sms-due-date, .sms-payment-date {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.sms-due-date {
+	color: #6c757d;
+}
+
+.sms-payment-date {
+	color: #28a745;
+}
+
+.sms-due-date .dashicons, .sms-payment-date .dashicons {
+	font-size: 12px;
+	width: 12px;
+	height: 12px;
+}
+
+/* Actions Cell */
+.sms-actions-cell {
+	text-align: center;
+	vertical-align: middle;
+}
+
+.sms-voucher-btn {
+	background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+	border: none;
+	color: white;
+	padding: 8px 16px;
+	border-radius: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.3s ease;
+	text-decoration: none;
+}
+
+.sms-voucher-btn:hover {
+	background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.sms-voucher-btn .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+}
+
+.sms-no-voucher {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	background: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 6px;
+	color: #6c757d;
+	cursor: not-allowed;
+}
+
+.sms-no-voucher .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+/* Empty State */
+.sms-empty-row {
+	background: #f8f9fa;
+}
+
+.sms-empty-state {
+	text-align: center;
+	padding: 40px 20px;
+	color: #6c757d;
+}
+
+.sms-empty-state .dashicons {
+	font-size: 48px;
+	width: 48px;
+	height: 48px;
+	margin-bottom: 15px;
+	color: #dee2e6;
+}
+
+.sms-empty-state p {
+	margin: 0 0 5px 0;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.sms-empty-state small {
+	font-size: 14px;
+	color: #adb5bd;
+}
+
+/* Summary Row */
+.sms-summary-row {
+	background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+	color: white;
+}
+
+.sms-summary-row th {
+	padding: 20px 15px;
+	font-weight: 700;
+}
+
+.sms-summary-row td {
+	padding: 20px 15px;
+	font-weight: 700;
+	font-size: 16px;
+}
+
+.sms-summary-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sms-summary-percentage {
+	background: rgba(255, 255, 255, 0.2);
+	padding: 8px 16px;
+	border-radius: 20px;
+	font-size: 14px;
+	font-weight: 600;
+	text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.sms-filter-grid {
+		grid-template-columns: 1fr;
+	}
+	
+	.sms-stats-grid {
+		grid-template-columns: 1fr;
+	}
+	
+	.sms-filter-buttons {
+		flex-direction: column;
+	}
+	
+	.sms-enhanced-table {
+		font-size: 12px;
+	}
+	
+	.sms-enhanced-table thead th,
+	.sms-enhanced-table tbody td {
+		padding: 10px 8px;
+	}
+	
+	.sms-student-avatar {
+		width: 35px;
+		height: 35px;
+	}
+	
+	.sms-student-avatar .dashicons {
+		font-size: 16px;
+		width: 16px;
+		height: 16px;
+	}
+}
 </style>
 
 <div class="wrap">
@@ -130,6 +812,14 @@ if ( isset( $_GET['sms_message'] ) ) {
 		<a href="?page=sms-fees&action=add" class="nav-tab <?php echo $show_form ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Add Fee', 'school-management-system' ); ?></a>
 		<a href="?page=sms-fees&tab=report" class="nav-tab <?php echo 'report' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Reports', 'school-management-system' ); ?></a>
 		<a href="?page=sms-fees&action=export_fees_report&_wpnonce=<?php echo wp_create_nonce( 'sms_export_fees_nonce' ); ?>" class="nav-tab" style="float: right;"><?php esc_html_e( 'Export CSV', 'school-management-system' ); ?></a>
+		<?php if ( WP_DEBUG && current_user_can( 'manage_options' ) ) : ?>
+			<button type="button" class="nav-tab" style="float: right; margin-right: 10px;" id="sms-debug-voucher">
+				<?php esc_html_e( 'Debug Voucher', 'school-management-system' ); ?>
+			</button>
+			<button type="button" class="nav-tab" style="float: right; margin-right: 10px;" id="sms-test-ajax">
+				<?php esc_html_e( 'Test AJAX', 'school-management-system' ); ?>
+			</button>
+		<?php endif; ?>
 	</nav>
 
 	<?php if ( $show_form ) : ?>
@@ -669,6 +1359,10 @@ if ( isset( $_GET['sms_message'] ) ) {
 										<span class="dashicons dashicons-calendar"></span>
 										<?php esc_html_e( 'Dates', 'school-management-system' ); ?>
 									</th>
+									<th class="sms-col-actions">
+										<span class="dashicons dashicons-download"></span>
+										<?php esc_html_e( 'Actions', 'school-management-system' ); ?>
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -736,11 +1430,23 @@ if ( isset( $_GET['sms_message'] ) ) {
 													<?php endif; ?>
 												</div>
 											</td>
+											<td class="sms-actions-cell">
+												<?php if ( in_array( $fee->status, array( 'paid', 'partially_paid' ) ) ) : ?>
+													<button type="button" class="button sms-voucher-btn" data-fee-id="<?php echo intval( $fee->id ); ?>" title="<?php esc_attr_e( 'Download Payment Voucher', 'school-management-system' ); ?>">
+														<span class="dashicons dashicons-media-document"></span>
+														<?php esc_html_e( 'Voucher', 'school-management-system' ); ?>
+													</button>
+												<?php else : ?>
+													<span class="sms-no-voucher" title="<?php esc_attr_e( 'Voucher available after payment', 'school-management-system' ); ?>">
+														<span class="dashicons dashicons-lock"></span>
+													</span>
+												<?php endif; ?>
+											</td>
 										</tr>
 									<?php endforeach; ?>
 								<?php else : ?>
 									<tr class="sms-empty-row">
-										<td colspan="8">
+										<td colspan="9">
 											<div class="sms-empty-state">
 												<span class="dashicons dashicons-search"></span>
 												<p><?php esc_html_e( 'No fee records found for the selected filters.', 'school-management-system' ); ?></p>
@@ -767,7 +1473,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 											<?php echo esc_html( number_format( $total_due, 2 ) ); ?>
 										</span>
 									</td>
-									<td colspan="2" class="sms-summary-actions">
+									<td colspan="3" class="sms-summary-actions">
 										<div class="sms-summary-percentage">
 											<?php 
 											$collection_rate = $total_amount > 0 ? ( $total_paid / $total_amount ) * 100 : 0;
@@ -826,8 +1532,288 @@ if ( isset( $_GET['sms_message'] ) ) {
 			$('#due_amount').val(dueAmount.toFixed(2));
 		});
 
+		// Toggle filter section
+		$('.sms-toggle-filters').on('click', function() {
+			var $button = $(this);
+			var $content = $('.sms-filter-content');
+			var isExpanded = $button.data('expanded') === true;
+			
+			if (isExpanded) {
+				$content.slideUp(300);
+				$button.find('.dashicons').removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+				$button.data('expanded', false);
+			} else {
+				$content.slideDown(300);
+				$button.find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+				$button.data('expanded', true);
+			}
+		});
+
+		// Animate status bars on page load
+		$('.sms-status-progress').each(function() {
+			var $bar = $(this);
+			var width = $bar.css('width');
+			$bar.css('width', '0%');
+			setTimeout(function() {
+				$bar.css('width', width);
+			}, 300);
+		});
+
+		// Add hover effects to stat cards
+		$('.sms-stat-card').hover(
+			function() {
+				$(this).find('.sms-stat-icon').addClass('pulse');
+			},
+			function() {
+				$(this).find('.sms-stat-icon').removeClass('pulse');
+			}
+		);
+
 		// Initialize on page load
 		$('#status').trigger('change');
+
+		// Add pulse animation for stat icons
+		$('<style>')
+			.prop('type', 'text/css')
+			.html('.pulse { animation: pulse 1s infinite; } @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }')
+			.appendTo('head');
+
+		// Handle voucher download
+		$('.sms-voucher-btn').on('click', function(e) {
+			e.preventDefault(); // Prevent any default behavior
+			
+			var $button = $(this);
+			var feeId = $button.data('fee-id');
+			
+			console.log('Voucher button clicked for fee ID:', feeId);
+			
+			// Show loading state
+			$button.prop('disabled', true);
+			$button.html('<span class="dashicons dashicons-update spin"></span> <?php esc_html_e( 'Generating...', 'school-management-system' ); ?>');
+			
+			// Create nonce for security
+			var nonce = '<?php echo wp_create_nonce( 'sms_generate_voucher_nonce' ); ?>';
+			console.log('Nonce created:', nonce);
+			
+			// Debug: Check if ajaxurl is available
+			if (typeof ajaxurl === 'undefined') {
+				ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+				console.log('AJAX URL set to:', ajaxurl);
+			}
+			
+			// Prepare AJAX data
+			var ajaxData = {
+				action: 'sms_generate_voucher',
+				fee_id: feeId,
+				nonce: nonce
+			};
+			
+			console.log('Sending AJAX request:', ajaxData);
+			
+			// Make AJAX request to generate voucher
+			$.ajax({
+				url: ajaxurl,
+				type: 'POST',
+				data: ajaxData,
+				timeout: 30000, // 30 second timeout
+				beforeSend: function(xhr) {
+					xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+					console.log('AJAX request about to send');
+				},
+				success: function(response) {
+					console.log('AJAX Response received:', response);
+					
+					if (response && response.success) {
+						console.log('Success response:', response.data);
+						
+						// Create download link
+						var downloadLink = document.createElement('a');
+						downloadLink.href = response.data.url;
+						downloadLink.download = response.data.filename;
+						downloadLink.target = '_blank'; // Open in new tab as fallback
+						
+						console.log('Download link created:', {
+							href: downloadLink.href,
+							download: downloadLink.download
+						});
+						
+						// Add to DOM, click, and remove
+						document.body.appendChild(downloadLink);
+						downloadLink.click();
+						document.body.removeChild(downloadLink);
+						
+						// Show success message with appropriate text
+						var successText = '<?php esc_html_e( 'Downloaded', 'school-management-system' ); ?>';
+						if (response.data.type === 'html') {
+							successText = '<?php esc_html_e( 'HTML Downloaded', 'school-management-system' ); ?>';
+						}
+						
+						$button.html('<span class="dashicons dashicons-yes-alt"></span> ' + successText);
+						
+						// Show additional message if provided
+						if (response.data.message) {
+							console.log('Additional message:', response.data.message);
+							// Create a temporary notice
+							var notice = $('<div class="notice notice-success is-dismissible" style="margin-top: 10px;"><p>' + response.data.message + '</p></div>');
+							$button.closest('tr').after(notice);
+							
+							// Auto-remove after 5 seconds
+							setTimeout(function() {
+								notice.fadeOut(function() {
+									notice.remove();
+								});
+							}, 5000);
+						}
+						
+						setTimeout(function() {
+							$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
+							$button.prop('disabled', false);
+						}, 2000);
+					} else {
+						console.error('Server returned error:', response);
+						// Show error
+						$button.html('<span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'Error', 'school-management-system' ); ?>');
+						var errorMsg = response && response.data ? response.data.message : '<?php esc_html_e( 'Failed to generate voucher. Please try again.', 'school-management-system' ); ?>';
+						console.error('Server Error:', errorMsg);
+						alert(errorMsg);
+						
+						setTimeout(function() {
+							$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
+							$button.prop('disabled', false);
+						}, 2000);
+					}
+				},
+				error: function(xhr, status, error) {
+					console.error('AJAX Error Details:', {
+						status: status,
+						error: error,
+						responseText: xhr.responseText,
+						statusCode: xhr.status,
+						readyState: xhr.readyState
+					});
+					
+					// Show detailed error information
+					var errorMsg = '<?php esc_html_e( 'Network error occurred', 'school-management-system' ); ?>';
+					
+					if (xhr.status === 0) {
+						errorMsg = '<?php esc_html_e( 'Network connection failed. Please check your internet connection.', 'school-management-system' ); ?>';
+					} else if (xhr.status === 403) {
+						errorMsg = '<?php esc_html_e( 'Permission denied. You may not have sufficient privileges.', 'school-management-system' ); ?>';
+					} else if (xhr.status === 404) {
+						errorMsg = '<?php esc_html_e( 'Service not found. The voucher generation service may be unavailable.', 'school-management-system' ); ?>';
+					} else if (xhr.status === 500) {
+						errorMsg = '<?php esc_html_e( 'Server error occurred. Please try again later.', 'school-management-system' ); ?>';
+						console.log('Server response text:', xhr.responseText);
+					} else if (status === 'timeout') {
+						errorMsg = '<?php esc_html_e( 'Request timed out. Please try again.', 'school-management-system' ); ?>';
+					}
+					
+					$button.html('<span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'Error', 'school-management-system' ); ?>');
+					alert(errorMsg + '\n\n<?php esc_html_e( 'Technical details:', 'school-management-system' ); ?> ' + status + ' - ' + error + ' (Status: ' + xhr.status + ')');
+					
+					setTimeout(function() {
+						$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
+						$button.prop('disabled', false);
+					}, 2000);
+				}
+			});
+		});
+
+		// Add spin animation for loading state
+		$('<style>')
+			.prop('type', 'text/css')
+			.html('.spin { animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }')
+			.appendTo('head');
+
+		// Debug voucher functionality
+		$('#sms-debug-voucher').on('click', function() {
+			var $debugBtn = $(this);
+			$debugBtn.prop('disabled', true);
+			$debugBtn.text('<?php esc_html_e( 'Testing...', 'school-management-system' ); ?>');
+			
+			$.ajax({
+				url: ajaxurl,
+				type: 'POST',
+				data: {
+					action: 'sms_test_voucher',
+					nonce: '<?php echo wp_create_nonce( 'sms_generate_voucher_nonce' ); ?>'
+				},
+				success: function(response) {
+					console.log('Debug Response:', response);
+					if (response.success) {
+						var debugInfo = response.data;
+						var debugHtml = '<div style="background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #ccc; border-radius: 5px;">';
+						debugHtml += '<h3><?php esc_html_e( 'Voucher System Debug Information', 'school-management-system' ); ?></h3>';
+						debugHtml += '<table style="width: 100%; border-collapse: collapse;">';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Timestamp:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.timestamp + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'AJAX URL:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.ajax_url + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'PHP Version:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.php_version + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'WordPress Version:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.wp_version + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Memory Limit:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.memory_limit + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Max Execution Time:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.max_execution_time + 's</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Fileinfo Extension:', 'school-management-system' ); ?></strong></td><td>' + (debugInfo.fileinfo ? '<?php esc_html_e( 'Available', 'school-management-system' ); ?>' : '<?php esc_html_e( 'Not Available', 'school-management-system' ); ?>') + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Vouchers Directory:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.vouchers_dir + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Directory Exists:', 'school-management-system' ); ?></strong></td><td>' + (debugInfo.vouchers_dir_exists ? '<?php esc_html_e( 'Yes', 'school-management-system' ); ?>' : '<?php esc_html_e( 'No', 'school-management-system' ); ?>') + '</td></tr>';
+						debugHtml += '<tr><td><strong><?php esc_html_e( 'Directory Writable:', 'school-management-system' ); ?></strong></td><td>' + debugInfo.vouchers_dir_writable + '</td></tr>';
+						debugHtml += '</table>';
+						debugHtml += '<p><strong><?php esc_html_e( 'Upload Directory:', 'school-management-system' ); ?></strong><br>' + JSON.stringify(debugInfo.upload_dir, null, 2) + '</p>';
+						debugHtml += '</div>';
+						
+						// Show debug information
+						$('body').append(debugHtml);
+						
+						$debugBtn.text('<?php esc_html_e( 'Debug Complete', 'school-management-system' ); ?>');
+						setTimeout(function() {
+							$debugBtn.prop('disabled', false);
+							$debugBtn.text('<?php esc_html_e( 'Debug Voucher', 'school-management-system' ); ?>');
+						}, 2000);
+					} else {
+						alert('<?php esc_html_e( 'Debug test failed:', 'school-management-system' ); ?> ' + response.data);
+						$debugBtn.prop('disabled', false);
+						$debugBtn.text('<?php esc_html_e( 'Debug Voucher', 'school-management-system' ); ?>');
+					}
+				},
+				error: function(xhr, status, error) {
+					console.error('Debug Error:', xhr, status, error);
+					alert('<?php esc_html_e( 'Debug AJAX failed:', 'school-management-system' ); ?> ' + status + ' - ' + error);
+					$debugBtn.prop('disabled', false);
+					$debugBtn.text('<?php esc_html_e( 'Debug Voucher', 'school-management-system' ); ?>');
+				}
+			});
+		});
+
+		// Test AJAX endpoint
+		$('#sms-test-ajax').on('click', function() {
+			var $testBtn = $(this);
+			$testBtn.prop('disabled', true);
+			$testBtn.text('<?php esc_html_e( 'Testing...', 'school-management-system' ); ?>');
+			
+			console.log('Testing AJAX endpoint...');
+			
+			$.ajax({
+				url: ajaxurl,
+				type: 'POST',
+				data: {
+					action: 'sms_test_voucher',
+					nonce: '<?php echo wp_create_nonce( 'sms_generate_voucher_nonce' ); ?>'
+				},
+				success: function(response) {
+					console.log('Test AJAX Success:', response);
+					alert('<?php esc_html_e( 'AJAX Test Successful!', 'school-management-system' ); ?>\n\nCheck console for details.');
+					$testBtn.text('<?php esc_html_e( 'AJAX OK', 'school-management-system' ); ?>');
+					setTimeout(function() {
+						$testBtn.prop('disabled', false);
+						$testBtn.text('<?php esc_html_e( 'Test AJAX', 'school-management-system' ); ?>');
+					}, 2000);
+				},
+				error: function(xhr, status, error) {
+					console.error('Test AJAX Error:', xhr, status, error);
+					alert('<?php esc_html_e( 'AJAX Test Failed:', 'school-management-system' ); ?>\n' + status + ' - ' + error + '\nStatus: ' + xhr.status);
+					$testBtn.prop('disabled', false);
+					$testBtn.text('<?php esc_html_e( 'Test AJAX', 'school-management-system' ); ?>');
+				}
+			});
+		});
 	});
 	</script>
 </div>
