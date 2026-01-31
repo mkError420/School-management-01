@@ -217,6 +217,7 @@ class Activator {
 		            percentage decimal(5, 2),
 		            grade varchar(5),
 		            remarks text,
+		            status varchar(20) DEFAULT 'published',
 		            created_at datetime DEFAULT CURRENT_TIMESTAMP,
 		            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		            PRIMARY KEY  (id),

@@ -23,6 +23,10 @@ class Result {
 			return false;
 		}
 
+		if ( empty( $result_data['status'] ) ) {
+			$result_data['status'] = 'published';
+		}
+
 		// Calculate percentage and grade.
 		$exam = Exam::get( $result_data['exam_id'] );
 		if ( ! $exam ) {
@@ -154,6 +158,21 @@ class Result {
 		} else {
 			return 'D';
 		}
+	}
+
+	/**
+	 * Calculate GPA based on percentage.
+	 *
+	 * @param float $percentage Percentage.
+	 * @return float GPA.
+	 */
+	public static function calculate_gpa( $percentage ) {
+		if ( $percentage >= 80 ) return 4.0;
+		if ( $percentage >= 70 ) return 3.5;
+		if ( $percentage >= 60 ) return 3.0;
+		if ( $percentage >= 50 ) return 2.0;
+		if ( $percentage >= 40 ) return 1.0;
+		return 0.0;
 	}
 
 	/**

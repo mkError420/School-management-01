@@ -204,6 +204,12 @@ jQuery(document).ready(function ($) {
 		$('input[name="enrollment_ids[]"]').prop('checked', isChecked);
 	});
 
+	// Select All checkbox for bulk actions (Results)
+	$('#cb-select-all-results').on('click', function() {
+		var isChecked = $(this).prop('checked');
+		$('input[name="result_ids[]"]').prop('checked', isChecked);
+	});
+
 	// Handle voucher download (Global)
 	$(document).on('click', '.sms-voucher-btn', function(e) {
 		e.preventDefault();

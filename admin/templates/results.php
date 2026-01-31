@@ -20,6 +20,7 @@ $result = null;
 $is_edit = false;
 $action = sanitize_text_field( $_GET['action'] ?? '' );
 $result_id = intval( $_GET['id'] ?? 0 );
+$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'view_results';
 
 // Filters
 $class_id_filter = intval( $_GET['class_id'] ?? 0 );
@@ -36,6 +37,17 @@ if ( 'edit' === $action && $result_id ) {
 }
 
 $show_form = ( 'add' === $action || $is_edit );
+
+$message = '';
+if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] ) {
+	$message = __( 'Results saved successfully.', 'school-management-system' );
+} elseif ( isset( $_GET['sms_message'] ) && 'result_deleted' === $_GET['sms_message'] ) {
+	$message = __( 'Result deleted successfully.', 'school-management-system' );
+} elseif ( isset( $_GET['sms_message'] ) && 'results_bulk_deleted' === $_GET['sms_message'] ) {
+	$count = intval( $_GET['count'] ?? 0 );
+	$message = sprintf( __( '%d results deleted successfully.', 'school-management-system' ), $count );
+}
+
 ?>
 
 <style>
@@ -108,6 +120,15 @@ $show_form = ( 'add' === $action || $is_edit );
  	.sms-results-header { flex-direction: column; align-items: flex-start; }
  	.sms-results-header-actions { width: 100%; justify-content: flex-start; }
  }
+ 
+ /* Analytics Styles */
+ .sms-analytics-card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+ .sms-analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+ .sms-stat-box { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+ .sms-stat-box h4 { margin: 0 0 5px; color: #666; font-size: 12px; text-transform: uppercase; }
+ .sms-stat-box .value { font-size: 24px; font-weight: 700; color: #2c3e50; }
+ .sms-progress-bar { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+ .sms-progress-fill { height: 100%; background: #4caf50; }
 </style>
 
 <div class="wrap">
@@ -121,7 +142,7 @@ $show_form = ( 'add' === $action || $is_edit );
 				<?php if ( ! $show_form ) : ?>
 					<a class="sms-cta-btn" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results&action=add' ) ); ?>">
 						<span class="dashicons dashicons-plus-alt"></span>
-						<?php esc_html_e( 'Add New Result', 'school-management-system' ); ?>
+						<?php esc_html_e( 'Add Single Result', 'school-management-system' ); ?>
 					</a>
 				<?php else : ?>
 					<a class="sms-cta-btn" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results' ) ); ?>">
@@ -132,7 +153,18 @@ $show_form = ( 'add' === $action || $is_edit );
 			</div>
 		</div>
 
+		<?php if ( ! empty( $message ) ) : ?>
+			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+		<?php endif; ?>
+
+		<h2 class="nav-tab-wrapper">
+			<a href="?page=sms-results&tab=view_results" class="nav-tab <?php echo 'view_results' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'View Results', 'school-management-system' ); ?></a>
+			<a href="?page=sms-results&tab=bulk_entry" class="nav-tab <?php echo 'bulk_entry' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Bulk Result Entry', 'school-management-system' ); ?></a>
+			<a href="?page=sms-results&tab=analytics" class="nav-tab <?php echo 'analytics' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Analytics', 'school-management-system' ); ?></a>
+		</h2>
+
 		<?php if ( $show_form ) : ?>
+			<!-- Single Result Form -->
 			<div class="sms-panel" id="sms-result-form">
 				<div class="sms-panel-header">
 					<h2><?php echo $is_edit ? esc_html__( 'Edit Result', 'school-management-system' ) : esc_html__( 'Add New Result', 'school-management-system' ); ?></h2>
@@ -270,7 +302,8 @@ $show_form = ( 'add' === $action || $is_edit );
 					</script>
 				</div>
 			</div>
-		<?php else : ?>
+		<?php elseif ( 'view_results' === $active_tab ) : ?>
+			<!-- View Results Tab -->
 			<div class="sms-panel" id="sms-result-filter">
 				<div class="sms-panel-header">
 					<h2><?php esc_html_e( 'Exam Results', 'school-management-system' ); ?></h2>
@@ -331,15 +364,28 @@ $show_form = ( 'add' === $action || $is_edit );
 				</div>
 			</div>
 
+			<form method="post">
+				<?php wp_nonce_field( 'sms_bulk_delete_results_nonce', 'sms_bulk_delete_results_nonce' ); ?>
+				<div class="tablenav top">
+					<div class="alignleft actions bulkactions">
+						<select name="action">
+							<option value="-1"><?php esc_html_e( 'Bulk Actions', 'school-management-system' ); ?></option>
+							<option value="bulk_delete_results"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></option>
+						</select>
+						<input type="submit" class="button action" value="<?php esc_attr_e( 'Apply', 'school-management-system' ); ?>">
+					</div>
+				</div>
 			<table class="wp-list-table widefat fixed striped">
 				<thead>
 					<tr>
+						<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-results" type="checkbox"></td>
 						<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
 						<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
 						<th><?php esc_html_e( 'Exam', 'school-management-system' ); ?></th>
 						<th><?php esc_html_e( 'Subject', 'school-management-system' ); ?></th>
 						<th><?php esc_html_e( 'Marks', 'school-management-system' ); ?></th>
 						<th><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -356,6 +402,7 @@ $show_form = ( 'add' === $action || $is_edit );
 						foreach ( $results as $row ) {
 							?>
 							<tr>
+								<th scope="row" class="check-column"><input type="checkbox" name="result_ids[]" value="<?php echo intval( $row->id ); ?>"></th>
 								<td>
 									<strong><?php echo esc_html( $row->first_name . ' ' . $row->last_name ); ?></strong><br>
 									<span class="description"><?php echo esc_html( $row->roll_number ); ?></span>
@@ -370,15 +417,222 @@ $show_form = ( 'add' === $action || $is_edit );
 									</span>
 									(<?php echo number_format( $row->percentage, 1 ); ?>%)
 								</td>
+								<td>
+									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results&action=edit&id=' . $row->id ) ); ?>" class="button button-small"><?php esc_html_e( 'Edit', 'school-management-system' ); ?></a>
+									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-results&action=delete&id=' . $row->id ), 'sms_delete_result_nonce' ) ); ?>" class="button button-small button-link-delete" style="color: #a00;" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete this result?', 'school-management-system' ); ?>')"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></a>
+								</td>
 							</tr>
 							<?php
 						}
 					} else {
-						echo '<tr><td colspan="6">' . esc_html__( 'No results found.', 'school-management-system' ) . '</td></tr>';
+ 						echo '<tr><td colspan="8">' . esc_html__( 'No results found.', 'school-management-system' ) . '</td></tr>';
 					}
 					?>
 				</tbody>
 			</table>
+			</form>
+
+		<?php elseif ( 'bulk_entry' === $active_tab ) : ?>
+			<!-- Bulk Entry Tab -->
+			<div class="sms-panel">
+				<div class="sms-panel-header">
+					<h2><?php esc_html_e( 'Bulk Result Entry', 'school-management-system' ); ?></h2>
+				</div>
+				<div class="sms-panel-body">
+					<form method="get" action="">
+						<input type="hidden" name="page" value="sms-results" />
+						<input type="hidden" name="tab" value="bulk_entry" />
+						<div style="display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px;">
+							<div>
+								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></label>
+								<select name="class_id" required>
+									<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
+									<?php
+									$classes = Classm::get_all();
+									foreach ( $classes as $class ) {
+										echo '<option value="' . intval( $class->id ) . '" ' . selected( $class_id_filter, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
+									}
+									?>
+								</select>
+							</div>
+							<div>
+								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></label>
+								<select name="exam_id" required>
+									<option value=""><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></option>
+									<?php
+									$exams = Exam::get_all();
+									foreach ( $exams as $exam ) {
+										echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
+									}
+									?>
+								</select>
+							</div>
+							<div>
+								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></label>
+								<select name="subject_id" required>
+									<option value=""><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></option>
+									<?php
+									$subjects = Subject::get_all();
+									foreach ( $subjects as $subject ) {
+										echo '<option value="' . intval( $subject->id ) . '" ' . selected( $subject_id_filter, $subject->id, false ) . '>' . esc_html( $subject->subject_name ) . '</option>';
+									}
+									?>
+								</select>
+							</div>
+							<button type="submit" class="button button-primary"><?php esc_html_e( 'Load Students', 'school-management-system' ); ?></button>
+						</div>
+					</form>
+
+					<?php if ( $class_id_filter && $exam_id_filter && $subject_id_filter ) : ?>
+						<?php 
+						$students = Student::get_by_class( $class_id_filter );
+						$exam = Exam::get( $exam_id_filter );
+						?>
+						<form method="post" action="">
+							<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
+							<input type="hidden" name="exam_id" value="<?php echo intval( $exam_id_filter ); ?>">
+							<input type="hidden" name="subject_id" value="<?php echo intval( $subject_id_filter ); ?>">
+							
+							<div style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 5px;">
+								<strong><?php esc_html_e( 'Max Marks:', 'school-management-system' ); ?></strong> <?php echo esc_html( $exam->total_marks ); ?> | 
+								<strong><?php esc_html_e( 'Passing Marks:', 'school-management-system' ); ?></strong> <?php echo esc_html( $exam->passing_marks ); ?>
+							</div>
+
+							<table class="wp-list-table widefat fixed striped">
+								<thead>
+									<tr>
+										<th><?php esc_html_e( 'Roll No', 'school-management-system' ); ?></th>
+										<th><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></th>
+										<th><?php esc_html_e( 'Obtained Marks', 'school-management-system' ); ?></th>
+										<th><?php esc_html_e( 'Remarks', 'school-management-system' ); ?></th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ( $students as $student ) : ?>
+										<?php
+										// Check for existing result
+										global $wpdb;
+										$table = $wpdb->prefix . 'sms_results';
+										$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE student_id = %d AND exam_id = %d AND subject_id = %d", $student->id, $exam_id_filter, $subject_id_filter ) );
+										$marks = $existing ? $existing->obtained_marks : '';
+										$remarks = $existing ? $existing->remarks : '';
+										?>
+										<tr>
+											<td><?php echo esc_html( $student->roll_number ); ?></td>
+											<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
+											<td>
+												<input type="number" name="results[<?php echo intval( $student->id ); ?>][marks]" value="<?php echo esc_attr( $marks ); ?>" step="0.01" max="<?php echo esc_attr( $exam->total_marks ); ?>" style="width: 100px;">
+											</td>
+											<td>
+												<input type="text" name="results[<?php echo intval( $student->id ); ?>][remarks]" value="<?php echo esc_attr( $remarks ); ?>" style="width: 100%;">
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+							
+							<div style="margin-top: 20px; display: flex; align-items: center; gap: 15px;">
+								<label>
+									<?php esc_html_e( 'Status:', 'school-management-system' ); ?>
+									<select name="status">
+										<option value="published"><?php esc_html_e( 'Published', 'school-management-system' ); ?></option>
+										<option value="draft"><?php esc_html_e( 'Draft', 'school-management-system' ); ?></option>
+									</select>
+								</label>
+								<button type="submit" name="sms_bulk_save_results" class="button button-primary button-large"><?php esc_html_e( 'Save All Results', 'school-management-system' ); ?></button>
+							</div>
+						</form>
+					<?php endif; ?>
+				</div>
+			</div>
+
+		<?php elseif ( 'analytics' === $active_tab ) : ?>
+			<!-- Analytics Tab -->
+			<div class="sms-panel">
+				<div class="sms-panel-header">
+					<h2><?php esc_html_e( 'Performance Analytics', 'school-management-system' ); ?></h2>
+				</div>
+				<div class="sms-panel-body">
+					<form method="get" action="">
+						<input type="hidden" name="page" value="sms-results" />
+						<input type="hidden" name="tab" value="analytics" />
+						<select name="exam_id" onchange="this.form.submit()">
+							<option value=""><?php esc_html_e( 'Select Exam to Analyze', 'school-management-system' ); ?></option>
+							<?php
+							$exams = Exam::get_all();
+							foreach ( $exams as $exam ) {
+								echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
+							}
+							?>
+						</select>
+					</form>
+
+					<?php if ( $exam_id_filter ) : ?>
+						<?php
+						$exam = Exam::get( $exam_id_filter );
+						$results = Result::get_exam_results( $exam_id_filter );
+						$total_students = count( $results );
+						$passed = 0;
+						$total_marks_sum = 0;
+						$highest = 0;
+						
+						foreach ( $results as $res ) {
+							if ( $res->obtained_marks >= $exam->passing_marks ) $passed++;
+							$total_marks_sum += $res->obtained_marks;
+							if ( $res->obtained_marks > $highest ) $highest = $res->obtained_marks;
+						}
+						
+						$avg = $total_students > 0 ? $total_marks_sum / $total_students : 0;
+						$pass_percent = $total_students > 0 ? ( $passed / $total_students ) * 100 : 0;
+						?>
+						
+						<div class="sms-analytics-grid" style="margin-top: 20px;">
+							<div class="sms-stat-box">
+								<h4><?php esc_html_e( 'Average Score', 'school-management-system' ); ?></h4>
+								<div class="value"><?php echo number_format( $avg, 1 ); ?></div>
+								<div class="sms-progress-bar"><div class="sms-progress-fill" style="width: <?php echo ( $avg / $exam->total_marks ) * 100; ?>%"></div></div>
+							</div>
+							<div class="sms-stat-box">
+								<h4><?php esc_html_e( 'Pass Percentage', 'school-management-system' ); ?></h4>
+								<div class="value"><?php echo number_format( $pass_percent, 1 ); ?>%</div>
+								<div class="sms-progress-bar"><div class="sms-progress-fill" style="width: <?php echo $pass_percent; ?>%; background: <?php echo $pass_percent > 50 ? '#4caf50' : '#f44336'; ?>"></div></div>
+							</div>
+							<div class="sms-stat-box">
+								<h4><?php esc_html_e( 'Highest Score', 'school-management-system' ); ?></h4>
+								<div class="value"><?php echo $highest; ?> <span style="font-size: 12px; color: #999;">/ <?php echo $exam->total_marks; ?></span></div>
+							</div>
+						</div>
+
+						<h3 style="margin-top: 30px;"><?php esc_html_e( 'Top Performers', 'school-management-system' ); ?></h3>
+						<table class="wp-list-table widefat fixed striped">
+							<thead>
+								<tr>
+									<th><?php esc_html_e( 'Rank', 'school-management-system' ); ?></th>
+									<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
+									<th><?php esc_html_e( 'Marks', 'school-management-system' ); ?></th>
+									<th><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php 
+								$count = 0;
+								foreach ( $results as $res ) : 
+									if ( $count >= 5 ) break;
+									$student = Student::get( $res->student_id );
+									$count++;
+								?>
+								<tr>
+									<td>#<?php echo $count; ?></td>
+									<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
+									<td><?php echo esc_html( $res->obtained_marks ); ?></td>
+									<td><?php echo esc_html( $res->grade ); ?></td>
+								</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					<?php endif; ?>
+				</div>
+			</div>
 		<?php endif; ?>
 	</div>
 </div>

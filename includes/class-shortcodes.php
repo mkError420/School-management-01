@@ -104,41 +104,86 @@ class Shortcodes {
 				</table>
 			</div>
 
-			<h3><?php esc_html_e( 'Results', 'school-management-system' ); ?></h3>
-			<table class="sms-results-table">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Exam', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Obtained Marks', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Percentage', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php
-					$results = Result::get_student_results( $student->id );
-					if ( ! empty( $results ) ) {
-						foreach ( $results as $result ) {
-							$exam = Exam::get( $result->exam_id );
-							?>
-							<tr>
-								<td><?php echo esc_html( $exam->exam_name ?? 'N/A' ); ?></td>
-								<td><?php echo floatval( $result->obtained_marks ); ?></td>
-								<td><?php echo number_format( floatval( $result->percentage ), 2 ); ?>%</td>
-								<td><?php echo esc_html( $result->grade ); ?></td>
-							</tr>
-							<?php
-						}
-					} else {
-						?>
-						<tr>
-							<td colspan="4"><?php esc_html_e( 'No results found', 'school-management-system' ); ?></td>
-						</tr>
-						<?php
-					}
+			<h3><?php esc_html_e( 'Academic Performance', 'school-management-system' ); ?></h3>
+			
+			<?php
+			$results = Result::get_student_results( $student->id );
+			// Group by Exam
+			$exam_results = array();
+			if ( ! empty( $results ) ) {
+				foreach ( $results as $result ) {
+					if ( isset( $result->status ) && 'draft' === $result->status ) continue;
+					$exam_results[ $result->exam_id ][] = $result;
+				}
+			}
+
+			if ( ! empty( $exam_results ) ) {
+				foreach ( $exam_results as $exam_id => $subjects ) {
+					$exam = Exam::get( $exam_id );
 					?>
-				</tbody>
-			</table>
+					<div class="sms-exam-card" style="background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+						<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
+							<h4 style="margin: 0; color: #2c3e50; font-size: 18px;"><?php echo esc_html( $exam->exam_name ); ?></h4>
+							<span style="font-size: 12px; color: #666;"><?php echo esc_html( $exam->exam_date ); ?></span>
+						</div>
+						
+						<table class="sms-results-table" style="width: 100%; border-collapse: collapse;">
+							<thead>
+								<tr style="background: #f9f9f9;">
+									<th style="padding: 10px; text-align: left;"><?php esc_html_e( 'Subject', 'school-management-system' ); ?></th>
+									<th style="padding: 10px; text-align: center;"><?php esc_html_e( 'Marks', 'school-management-system' ); ?></th>
+									<th style="padding: 10px; text-align: center;"><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
+									<th style="padding: 10px; text-align: center;"><?php esc_html_e( 'GPA', 'school-management-system' ); ?></th>
+									<th style="padding: 10px; text-align: left;"><?php esc_html_e( 'Remarks', 'school-management-system' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php 
+								$total_obtained = 0;
+								$total_max = 0;
+								foreach ( $subjects as $res ) {
+									$subject = Subject::get( $res->subject_id );
+									$gpa = Result::calculate_gpa( $res->percentage );
+									$total_obtained += $res->obtained_marks;
+									$total_max += $exam->total_marks; // Assuming total marks per subject is exam total marks
+									?>
+									<tr style="border-bottom: 1px solid #eee;">
+										<td style="padding: 10px;"><?php echo esc_html( $subject->subject_name ); ?></td>
+										<td style="padding: 10px; text-align: center;">
+											<strong><?php echo floatval( $res->obtained_marks ); ?></strong> 
+											<span style="color: #999; font-size: 11px;">/ <?php echo floatval( $exam->total_marks ); ?></span>
+										</td>
+										<td style="padding: 10px; text-align: center;">
+											<span style="background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+												<?php echo esc_html( $res->grade ); ?>
+											</span>
+										</td>
+										<td style="padding: 10px; text-align: center;"><?php echo number_format( $gpa, 2 ); ?></td>
+										<td style="padding: 10px; font-size: 13px; color: #666;"><?php echo esc_html( $res->remarks ); ?></td>
+									</tr>
+									<?php
+								}
+								?>
+							</tbody>
+							<tfoot>
+								<tr style="background: #f0f8ff;">
+									<td style="padding: 10px; font-weight: bold;"><?php esc_html_e( 'Total', 'school-management-system' ); ?></td>
+									<td style="padding: 10px; text-align: center; font-weight: bold;"><?php echo $total_obtained; ?> / <?php echo $total_max; ?></td>
+									<td colspan="3" style="padding: 10px; text-align: right;">
+										<button onclick="window.print()" style="background: #2c3e50; color: #fff; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+											<?php esc_html_e( 'Print Result', 'school-management-system' ); ?>
+										</button>
+									</td>
+								</tr>
+							</tfoot>
+						</table>
+					</div>
+					<?php
+				}
+			} else {
+				echo '<p>' . esc_html__( 'No results available yet.', 'school-management-system' ) . '</p>';
+			}
+			?>
 
 			<p>
 				<a href="<?php echo esc_url( home_url( '/?sms_action=logout' ) ); ?>" class="sms-btn-logout">

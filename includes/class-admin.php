@@ -1505,6 +1505,92 @@ class Admin {
 			}
 		}
 
+		// Handle single result deletion.
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-results' === $_GET['page'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_result_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$result_id = intval( $_GET['id'] ?? 0 );
+			if ( $result_id > 0 ) {
+				Result::delete( $result_id );
+			}
+
+			wp_redirect( admin_url( 'admin.php?page=sms-results&sms_message=result_deleted' ) );
+			exit;
+		}
+
+		// Handle bulk result deletion.
+		if ( isset( $_POST['action'] ) && 'bulk_delete_results' === $_POST['action'] && isset( $_POST['result_ids'] ) ) {
+			if ( ! isset( $_POST['sms_bulk_delete_results_nonce'] ) || ! wp_verify_nonce( $_POST['sms_bulk_delete_results_nonce'], 'sms_bulk_delete_results_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$result_ids = array_map( 'intval', $_POST['result_ids'] );
+			$deleted_count = 0;
+			foreach ( $result_ids as $result_id ) {
+				if ( $result_id > 0 ) {
+					Result::delete( $result_id );
+					$deleted_count++;
+				}
+			}
+			wp_redirect( admin_url( 'admin.php?page=sms-results&sms_message=results_bulk_deleted&count=' . $deleted_count ) );
+			exit;
+		}
+
+		// Handle bulk result submission.
+		if ( isset( $_POST['sms_bulk_save_results'] ) ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			$exam_id = intval( $_POST['exam_id'] ?? 0 );
+			$subject_id = intval( $_POST['subject_id'] ?? 0 );
+			$results = $_POST['results'] ?? array();
+			$status = sanitize_text_field( $_POST['status'] ?? 'published' );
+
+			if ( $exam_id && $subject_id && ! empty( $results ) ) {
+				foreach ( $results as $student_id => $data ) {
+					$obtained_marks = floatval( $data['marks'] );
+					$remarks = sanitize_textarea_field( $data['remarks'] );
+					
+					// Check if result exists
+					global $wpdb;
+					$table = $wpdb->prefix . 'sms_results';
+					$existing_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE student_id = %d AND exam_id = %d AND subject_id = %d", $student_id, $exam_id, $subject_id ) );
+
+					$result_data = array(
+						'student_id' => $student_id,
+						'exam_id' => $exam_id,
+						'subject_id' => $subject_id,
+						'obtained_marks' => $obtained_marks,
+						'remarks' => $remarks,
+						'status' => $status
+					);
+
+					if ( $existing_id ) {
+						Result::update( $existing_id, $result_data );
+					} else {
+						Result::add( $result_data );
+					}
+				}
+				wp_redirect( admin_url( 'admin.php?page=sms-results&tab=bulk_entry&sms_message=results_saved' ) );
+				exit;
+			}
+		}
+
 		// Handle fee form submission.
 		if ( isset( $_POST['sms_add_fee'] ) || isset( $_POST['sms_edit_fee'] ) ) {
 			if ( ! current_user_can( 'manage_options' ) ) {
