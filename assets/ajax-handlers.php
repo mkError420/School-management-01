@@ -5,7 +5,22 @@
  * @package School_Management_System
  */
 
-namespace School_Management_System;
+use School_Management_System\Result;
+use School_Management_System\Enrollment;
+use School_Management_System\Student;
+use School_Management_System\Classm;
+use School_Management_System\Subject;
+use School_Management_System\Exam;
+use School_Management_System\Fee;
+use School_Management_System\Payment;
+use School_Management_System\Attendance;
+use School_Management_System\Timetable;
+use School_Management_System\Database;
+
+// Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * Submit attendance via AJAX.
@@ -222,8 +237,123 @@ function sms_ajax_search_data() {
 }
 
 /**
- * Generate payment voucher via AJAX.
+ * Add/Update result via AJAX.
  */
+function sms_ajax_add_result() {
+	// Enable error logging for debugging
+	error_log('SMS Add Result AJAX: Started');
+	
+	// Basic response for testing
+	if ( ! defined( 'DOING_AJAX' ) ) {
+		define( 'DOING_AJAX', true );
+	}
+	
+	// Check nonce
+	if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+		error_log('SMS Add Result AJAX: Nonce verification failed');
+		wp_send_json_error( __( 'Security check failed.', 'school-management-system' ) );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		error_log('SMS Add Result AJAX: Unauthorized access');
+		wp_send_json_error( __( 'Unauthorized', 'school-management-system' ) );
+	}
+
+	$exam_id = intval( $_POST['exam_id'] ?? 0 );
+	$subject_id = intval( $_POST['subject_id'] ?? 0 );
+	$student_id = intval( $_POST['student_id'] ?? 0 );
+	$obtained_marks = floatval( $_POST['obtained_marks'] ?? 0 );
+
+	error_log('SMS Add Result AJAX: Data received - Exam: ' . $exam_id . ', Subject: ' . $subject_id . ', Student: ' . $student_id . ', Marks: ' . $obtained_marks);
+
+	// Validate required fields
+	if ( empty( $exam_id ) || empty( $subject_id ) || empty( $student_id ) || empty( $obtained_marks ) ) {
+		error_log('SMS Add Result AJAX: Missing required fields');
+		wp_send_json_error( __( 'Please fill in all required fields.', 'school-management-system' ) );
+	}
+
+	// Test basic database insert without using Result class
+	try {
+		global $wpdb;
+		
+		$table_name = $wpdb->prefix . 'sms_results';
+		$exam_table = $wpdb->prefix . 'sms_exams';
+		
+		// Check if table exists
+		$table_check = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+		if (!$table_check) {
+			error_log('SMS Add Result AJAX: Table ' . $table_name . ' does not exist');
+			wp_send_json_error( __( 'Database table not found.', 'school-management-system' ) );
+		}
+		
+		// Get exam details for calculation
+		$exam = $wpdb->get_row($wpdb->prepare("SELECT total_marks, passing_marks FROM $exam_table WHERE id = %d", $exam_id));
+		
+		if (!$exam) {
+			error_log('SMS Add Result AJAX: Exam not found with ID: ' . $exam_id);
+			wp_send_json_error( __( 'Exam not found.', 'school-management-system' ) );
+		}
+		
+		error_log('SMS Add Result AJAX: Exam found - Total: ' . $exam->total_marks . ', Passing: ' . $exam->passing_marks);
+		
+		// Calculate percentage and grade
+		$percentage = ($obtained_marks / $exam->total_marks) * 100;
+		
+		// Simple grade calculation
+		if ($percentage >= 90) $grade = 'A+';
+		elseif ($percentage >= 80) $grade = 'A';
+		elseif ($percentage >= 70) $grade = 'B';
+		elseif ($percentage >= 60) $grade = 'C';
+		elseif ($percentage >= 50) $grade = 'D';
+		else $grade = 'F';
+		
+		error_log('SMS Add Result AJAX: Calculated - Percentage: ' . $percentage . '%, Grade: ' . $grade);
+		
+		// Prepare data for insertion
+		$insert_data = array(
+			'exam_id' => $exam_id,
+			'subject_id' => $subject_id,
+			'student_id' => $student_id,
+			'obtained_marks' => $obtained_marks,
+			'percentage' => $percentage,
+			'grade' => $grade,
+			'status' => 'published',
+			'created_at' => current_time('mysql'),
+			'updated_at' => current_time('mysql')
+		);
+		
+		$insert_format = array('%d', '%d', '%d', '%f', '%f', '%s', '%s', '%s');
+		
+		error_log('SMS Add Result AJAX: Insert data: ' . print_r($insert_data, true));
+		
+		// Insert directly into database
+		$result = $wpdb->insert($table_name, $insert_data, $insert_format);
+		
+		if ($result === false) {
+			error_log('SMS Add Result AJAX: Database insert failed: ' . $wpdb->last_error);
+			error_log('SMS Add Result AJAX: Last query: ' . $wpdb->last_query);
+			wp_send_json_error( __( 'Failed to add result to database: ', 'school-management-system' ) . $wpdb->last_error );
+		}
+		
+		$inserted_id = $wpdb->insert_id;
+		error_log('SMS Add Result AJAX: Successfully inserted result with ID: ' . $inserted_id);
+		
+		// Verify the insert by reading it back
+		$verify = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $inserted_id));
+		if ($verify) {
+			error_log('SMS Add Result AJAX: Verification successful - Result found in database');
+		} else {
+			error_log('SMS Add Result AJAX: Verification failed - Result not found in database');
+		}
+		
+		wp_send_json_success( array( 'message' => __( 'Result added successfully!', 'school-management-system' ) ) );
+		
+	} catch ( Exception $e ) {
+		error_log('SMS Add Result AJAX: Exception caught: ' . $e->getMessage());
+		error_log('SMS Add Result AJAX: Exception trace: ' . $e->getTraceAsString());
+		wp_send_json_error( __( 'An unexpected error occurred: ', 'school-management-system' ) . $e->getMessage() );
+	}
+}
 function sms_ajax_generate_voucher() {
 	// Enable error reporting for debugging
 	error_reporting(E_ALL);

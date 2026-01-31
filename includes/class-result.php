@@ -286,7 +286,7 @@ class Result {
 
 		$sql = "SELECT r.*, 
 				s.first_name, s.last_name, s.roll_number, 
-				e.exam_name, 
+				e.exam_name, e.total_marks, e.passing_marks,
 				c.class_name, 
 				sub.subject_name 
 				FROM $results_table r
@@ -315,5 +315,48 @@ class Result {
 		$sql .= " ORDER BY r.id DESC";
 
 		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Get overall average percentage across all results.
+	 *
+	 * @return float Overall average percentage.
+	 */
+	public static function get_overall_average() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_results';
+
+		$average = $wpdb->get_var(
+			"SELECT AVG(percentage) FROM $table_name WHERE percentage IS NOT NULL"
+		);
+
+		return floatval( $average ?? 0 );
+	}
+
+	/**
+	 * Get grade distribution statistics.
+	 *
+	 * @return array Grade counts by grade.
+	 */
+	public static function get_grade_distribution() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'sms_results';
+
+		$results = $wpdb->get_results(
+			"SELECT grade, COUNT(*) as count 
+			 FROM $table_name 
+			 WHERE grade IS NOT NULL 
+			 GROUP BY grade 
+			 ORDER BY grade"
+		);
+
+		$distribution = array();
+		foreach ( $results as $result ) {
+			$distribution[ $result->grade ] = intval( $result->count );
+		}
+
+		return $distribution;
 	}
 }

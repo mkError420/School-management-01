@@ -1,696 +1,2475 @@
 <?php
+
+
+
 /**
+
+
+
  * Results admin template.
+
+
+
+ *
+
+
+
  * @package School_Management_System
+
+
+
  */
 
+
+
+
+
+
+
 use School_Management_System\Result;
+
+
+
 use School_Management_System\Exam;
+
+
+
 use School_Management_System\Student;
+
+
+
 use School_Management_System\Classm;
+
+
+
 use School_Management_System\Subject;
-use School_Management_System\Enrollment;
+
+
+
+
+
+
 
 if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
+
+
+
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
+
+
+
 }
+
+
+
+
+
+
 
 $result = null;
+
+
+
 $is_edit = false;
+
+
+
 $action = sanitize_text_field( $_GET['action'] ?? '' );
+
+
+
 $result_id = intval( $_GET['id'] ?? 0 );
-$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'view_results';
+
+
+
+
+
+
+
+$total_results = Result::count();
+
+
+
+$passed_results = Result::count( array( 'grade !=' => 'F' ) );
+
+
+
+$failed_results = Result::count( array( 'grade' => 'F' ) );
+
+
+
+$average_percentage = Result::get_overall_average();
+
+
+
+
+
+
 
 // Filters
+
+
+
 $class_id_filter = intval( $_GET['class_id'] ?? 0 );
+
+
+
 $exam_id_filter = intval( $_GET['exam_id'] ?? 0 );
+
+
+
 $subject_id_filter = intval( $_GET['subject_id'] ?? 0 );
-$student_id_filter = intval( $_GET['student_id'] ?? 0 );
+
+
+
+
+
+
 
 if ( 'edit' === $action && $result_id ) {
+
+
+
 	$result = Result::get( $result_id );
+
+
+
 	if ( ! $result ) {
+
+
+
 		wp_die( esc_html__( 'Result record not found', 'school-management-system' ) );
+
+
+
 	}
+
+
+
 	$is_edit = true;
+
+
+
 }
+
+
+
+
+
+
 
 $show_form = ( 'add' === $action || $is_edit );
 
-$message = '';
-if ( isset( $_GET['sms_message'] ) && 'results_saved' === $_GET['sms_message'] ) {
-	$message = __( 'Results saved successfully.', 'school-management-system' );
-} elseif ( isset( $_GET['sms_message'] ) && 'result_deleted' === $_GET['sms_message'] ) {
-	$message = __( 'Result deleted successfully.', 'school-management-system' );
-} elseif ( isset( $_GET['sms_message'] ) && 'results_bulk_deleted' === $_GET['sms_message'] ) {
-	$count = intval( $_GET['count'] ?? 0 );
-	$message = sprintf( __( '%d results deleted successfully.', 'school-management-system' ), $count );
-} elseif ( isset( $_GET['sms_message'] ) && 'import_completed' === $_GET['sms_message'] ) {
-	$count = intval( $_GET['count'] ?? 0 );
-	$failed = intval( $_GET['failed'] ?? 0 );
-	$error_msg = isset( $_GET['error'] ) ? sanitize_text_field( urldecode( $_GET['error'] ) ) : '';
-	$message = sprintf( __( 'CSV Import completed. %d results saved. %d failed.', 'school-management-system' ), $count, $failed );
-	if ( $failed > 0 && ! empty( $error_msg ) ) {
-		$message .= ' ' . sprintf( __( 'Last error: %s', 'school-management-system' ), $error_msg );
-	}
-}
+
 
 ?>
 
+
+
 <style>
- .sms-results-page { max-width: 100%; }
- .sms-results-header {
- 	display: flex;
- 	justify-content: space-between;
- 	align-items: flex-start;
- 	gap: 16px;
- 	background: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
- 	color: #fff;
- 	padding: 22px;
- 	border-radius: 16px;
- 	box-shadow: 0 10px 30px rgba(0, 201, 255, 0.22);
- 	margin: 10px 0 18px;
- }
- .sms-results-title h1 { margin: 0; color: #fff; font-size: 22px; line-height: 1.2; }
- .sms-results-subtitle { margin: 6px 0 0; opacity: 0.92; font-size: 13px; }
- .sms-results-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
- .sms-cta-btn {
- 	background: #2c3e50;
- 	border: 1px solid #2c3e50;
- 	color: #fff;
- 	padding: 10px 14px;
- 	border-radius: 10px;
- 	font-weight: 700;
- 	text-decoration: none;
- 	display: inline-flex;
- 	align-items: center;
- 	gap: 8px;
- 	cursor: pointer;
- }
- .sms-cta-btn:hover { background: #1a252f; color: #fff; border-color: #1a252f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
- .sms-panel {
- 	background: #fff;
- 	border: 1px solid #e9ecef;
- 	border-radius: 16px;
- 	box-shadow: 0 8px 22px rgba(0,0,0,0.06);
- 	overflow: hidden;
- 	margin-bottom: 18px;
- }
- .sms-panel-header {
- 	background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
- 	color: #fff;
- 	padding: 14px 18px;
- 	display: flex;
- 	justify-content: space-between;
- 	align-items: center;
- 	gap: 12px;
- }
- .sms-panel-header h2 { margin: 0; font-size: 15px; font-weight: 800; color: #fff; }
- .sms-panel-body { padding: 18px; }
+/* Modern Results System Styles */
 
- .sms-status-badge {
- 	display: inline-flex;
- 	align-items: center;
- 	gap: 6px;
- 	padding: 6px 10px;
- 	border-radius: 999px;
- 	font-size: 11px;
- 	font-weight: 800;
- 	text-transform: uppercase;
- 	letter-spacing: 0.4px;
- 	border: 1px solid;
- }
- .sms-status-badge { background: rgba(67, 233, 123, 0.12); color: #155724; border-color: rgba(67, 233, 123, 0.28); }
+.sms-results-page { max-width: 100%; }
 
- @media (max-width: 782px) {
- 	.sms-results-header { flex-direction: column; align-items: flex-start; }
- 	.sms-results-header-actions { width: 100%; justify-content: flex-start; }
- }
- 
- /* Analytics Styles */
- .sms-analytics-card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
- .sms-analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
- .sms-stat-box { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
- .sms-stat-box h4 { margin: 0 0 5px; color: #666; font-size: 12px; text-transform: uppercase; }
- .sms-stat-box .value { font-size: 24px; font-weight: 700; color: #2c3e50; }
- .sms-progress-bar { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 5px; }
- .sms-progress-fill { height: 100%; background: #4caf50; }
+.sms-results-header {
+
+	display: flex;
+
+	justify-content: space-between;
+
+	align-items: flex-start;
+
+	gap: 16px;
+
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+	color: #fff;
+
+	padding: 22px;
+
+	border-radius: 16px;
+
+	box-shadow: 0 10px 30px rgba(102, 126, 234, 0.22);
+
+	margin: 10px 0 18px;
+
+}
+
+.sms-results-title h1 { margin: 0; color: #fff; font-size: 22px; line-height: 1.2; }
+
+.sms-results-subtitle { margin: 6px 0 0; opacity: 0.92; font-size: 13px; }
+
+.sms-results-header-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+.sms-cta-btn {
+
+	background: rgba(255,255,255,0.16);
+
+	border: 1px solid rgba(255,255,255,0.26);
+
+	color: #fff;
+
+	padding: 10px 14px;
+
+	border-radius: 10px;
+
+	font-weight: 700;
+
+	text-decoration: none;
+
+	display: inline-flex;
+
+	align-items: center;
+
+	gap: 8px;
+
+	cursor: pointer;
+
+	transition: all 0.3s ease;
+
+}
+
+.sms-cta-btn:hover { background: rgba(255,255,255,0.24); color: #fff; transform: translateY(-1px); }
+
+
+
+/* Statistics Dashboard */
+
+.sms-results-stats-grid {
+
+	display: grid;
+
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+	gap: 20px;
+
+	margin-bottom: 25px;
+
+}
+
+.sms-stat-card {
+
+	background: #fff;
+
+	border-radius: 16px;
+
+	padding: 20px;
+
+	box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+
+	border: 1px solid #eef1f5;
+
+	display: flex;
+
+	align-items: center;
+
+	gap: 16px;
+
+	transition: all 0.3s ease;
+
+	position: relative;
+
+	overflow: hidden;
+
+}
+
+.sms-stat-card::before {
+
+	content: '';
+
+	position: absolute;
+
+	top: 0;
+
+	left: 0;
+
+	right: 0;
+
+	height: 4px;
+
+	background: linear-gradient(90deg, var(--stat-color) 0%, var(--stat-color-light) 100%);
+
+}
+
+.sms-stat-card.total { --stat-color: #667eea; --stat-color-light: #a8b8f8; }
+
+.sms-stat-card.passed { --stat-color: #00d2d3; --stat-color-light: #54a0ff; }
+
+.sms-stat-card.failed { --stat-color: #f74c4c; --stat-color-light: #ff6b6b; }
+
+.sms-stat-card.average { --stat-color: #feca57; --stat-color-light: #ff9ff3; }
+
+.sms-stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.12); }
+
+.sms-stat-icon {
+
+	width: 50px;
+
+	height: 50px;
+
+	border-radius: 12px;
+
+	display: flex;
+
+	align-items: center;
+
+	justify-content: center;
+
+	color: #fff;
+
+	font-size: 24px;
+
+}
+
+.sms-stat-card.total .sms-stat-icon { background: linear-gradient(135deg, #667eea 0%, #a8b8f8 100%); }
+
+.sms-stat-card.passed .sms-stat-icon { background: linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%); }
+
+.sms-stat-card.failed .sms-stat-icon { background: linear-gradient(135deg, #f74c4c 0%, #ff6b6b 100%); }
+
+.sms-stat-card.average .sms-stat-icon { background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%); }
+
+.sms-stat-content { flex: 1; }
+
+.sms-stat-number { font-size: 28px; font-weight: 800; color: #2c3e50; line-height: 1.1; margin-bottom: 4px; }
+
+.sms-stat-label { font-size: 13px; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+
+
+
+/* Performance Chart */
+
+.sms-performance-chart {
+
+	background: #fff;
+
+	border-radius: 16px;
+
+	padding: 25px;
+
+	box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+
+	border: 1px solid #eef1f5;
+
+	margin-bottom: 25px;
+
+}
+
+.sms-chart-header {
+
+	display: flex;
+
+	justify-content: space-between;
+
+	align-items: center;
+
+	margin-bottom: 25px;
+
+}
+
+.sms-chart-header h3 { margin: 0; color: #2c3e50; font-size: 18px; font-weight: 600; }
+
+.sms-chart-legend { display: flex; gap: 12px; }
+
+.grade-legend {
+
+	padding: 4px 8px;
+
+	border-radius: 4px;
+
+	font-size: 12px;
+
+	font-weight: 600;
+
+	color: #fff;
+
+}
+
+.grade-legend.grade-aplus { background: #4CAF50; }
+
+.grade-legend.grade-a { background: #2196F3; }
+
+.grade-legend.grade-b { background: #FF9800; }
+
+.grade-legend.grade-c { background: #FFC107; }
+
+.grade-legend.grade-d { background: #9E9E9E; }
+
+.grade-legend.grade-f { background: #f44336; }
+
+.sms-chart-bars {
+
+	display: flex;
+
+	align-items: flex-end;
+
+	justify-content: space-around;
+
+	height: 200px;
+
+	gap: 15px;
+
+}
+
+.chart-bar-container {
+
+	display: flex;
+
+	flex-direction: column;
+
+	align-items: center;
+
+	flex: 1;
+
+	max-width: 80px;
+
+}
+
+.chart-bar {
+
+	width: 100%;
+
+	background: linear-gradient(180deg, var(--bar-color) 0%, var(--bar-color-light) 100%);
+
+	border-radius: 8px 8px 0 0;
+
+	min-height: 10px;
+
+	transition: height 0.5s ease;
+
+	position: relative;
+
+}
+
+.chart-bar.grade-aplus { --bar-color: #4CAF50; --bar-color-light: #81C784; }
+
+.chart-bar.grade-a { --bar-color: #2196F3; --bar-color-light: #64B5F6; }
+
+.chart-bar.grade-b { --bar-color: #FF9800; --bar-color-light: #FFB74D; }
+
+.chart-bar.grade-c { --bar-color: #FFC107; --bar-color-light: #FFD54F; }
+
+.chart-bar.grade-d { --bar-color: #9E9E9E; --bar-color-light: #BDBDBD; }
+
+.chart-bar.grade-f { --bar-color: #f44336; --bar-color-light: #EF5350; }
+
+.chart-label {
+
+	margin-top: 8px;
+
+	font-weight: 600;
+
+	color: #2c3e50;
+
+	font-size: 14px;
+
+}
+
+.chart-count {
+
+	margin-top: 4px;
+
+	font-size: 12px;
+
+	color: #6c757d;
+
+	font-weight: 500;
+
+}
+
+
+
+/* Modern Filter Design */
+
+.sms-filter-grid {
+
+	display: grid;
+
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+
+	gap: 20px;
+
+	align-items: end;
+
+}
+
+.sms-filter-field label {
+
+	display: block;
+
+	margin-bottom: 8px;
+
+	font-weight: 600;
+
+	color: #2c3e50;
+
+	font-size: 13px;
+
+	text-transform: uppercase;
+
+	letter-spacing: 0.4px;
+
+}
+
+.sms-filter-field select {
+
+	width: 100%;
+
+	padding: 10px 12px;
+
+	border: 2px solid #e9ecef;
+
+	border-radius: 8px;
+
+	font-size: 14px;
+
+	transition: all 0.3s ease;
+
+}
+
+.sms-filter-field select:focus {
+
+	outline: none;
+
+	border-color: #667eea;
+
+	box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+}
+
+.sms-filter-actions {
+
+	display: flex;
+
+	gap: 10px;
+
+}
+
+.sms-btn {
+
+	display: inline-flex;
+
+	align-items: center;
+
+	gap: 8px;
+
+	padding: 10px 16px;
+
+	border: none;
+
+	border-radius: 8px;
+
+	font-weight: 600;
+
+	font-size: 13px;
+
+	text-decoration: none;
+
+	cursor: pointer;
+
+	transition: all 0.3s ease;
+
+	text-transform: uppercase;
+
+	letter-spacing: 0.4px;
+
+}
+
+.sms-btn-primary {
+
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+	color: #fff;
+
+}
+
+.sms-btn-primary:hover {
+
+	transform: translateY(-1px);
+
+	box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+
+}
+
+.sms-btn-secondary {
+
+	background: #f8f9fa;
+
+	color: #6c757d;
+
+	border: 1px solid #dee2e6;
+
+}
+
+.sms-btn-secondary:hover {
+
+	background: #e9ecef;
+
+	color: #495057;
+
+}
+
+
+
+/* Modern Table Design */
+
+.sms-results-table-container {
+
+	background: #fff;
+
+	border-radius: 16px;
+
+	box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+
+	border: 1px solid #eef1f5;
+
+	overflow: hidden;
+
+}
+
+.sms-table-header {
+
+	display: flex;
+
+	justify-content: space-between;
+
+	align-items: center;
+
+	padding: 20px 25px;
+
+	border-bottom: 1px solid #eef1f5;
+
+	background: #f8f9fa;
+
+}
+
+.sms-table-header h3 { margin: 0; color: #2c3e50; font-size: 18px; font-weight: 600; }
+
+.sms-modern-table {
+
+	border: none !important;
+
+	box-shadow: none !important;
+
+}
+
+.sms-modern-table thead th {
+
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+
+	border: none !important;
+
+	color: #2c3e50 !important;
+
+	font-weight: 700 !important;
+
+	text-transform: uppercase;
+
+	letter-spacing: 0.4px;
+
+	font-size: 12px !important;
+
+	padding: 15px 20px !important;
+
+}
+
+.sms-modern-table tbody td {
+
+	padding: 15px 20px !important;
+
+	border: none !important;
+
+	border-bottom: 1px solid #f8f9fa !important;
+
+	vertical-align: middle !important;
+
+}
+
+.sms-modern-table tbody tr:hover {
+
+	background: #f8f9fa !important;
+
+}
+
+.sms-student-info {
+
+	display: flex;
+
+	align-items: center;
+
+	gap: 12px;
+
+}
+
+.student-avatar {
+
+	width: 40px;
+
+	height: 40px;
+
+	border-radius: 50%;
+
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+	display: flex;
+
+	align-items: center;
+
+	justify-content: center;
+
+	color: #fff;
+
+}
+
+.student-avatar .dashicons { font-size: 20px; }
+
+.student-details strong {
+
+	display: block;
+
+	color: #2c3e50;
+
+	font-weight: 600;
+
+}
+
+.sms-class-badge {
+
+	background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+
+	color: #1565c0;
+
+	padding: 4px 10px;
+
+	border-radius: 12px;
+
+	font-size: 12px;
+
+	font-weight: 600;
+
+}
+
+.sms-performance-cell {
+
+	display: flex;
+
+	flex-direction: column;
+
+	gap: 8px;
+
+}
+
+.performance-marks {
+
+	display: flex;
+
+	align-items: baseline;
+
+	gap: 4px;
+
+}
+
+.marks-obtained {
+
+	font-size: 18px;
+
+	font-weight: 700;
+
+	color: #2c3e50;
+
+}
+
+.marks-total {
+
+	font-size: 14px;
+
+	color: #6c757d;
+
+}
+
+.performance-percentage {
+
+	font-size: 14px;
+
+	font-weight: 600;
+
+	padding: 4px 8px;
+
+	border-radius: 6px;
+
+	text-align: center;
+
+}
+
+.performance-pass {
+
+	background: #e8f5e9;
+
+	color: #2e7d32;
+
+}
+
+.performance-fail {
+
+	background: #ffebee;
+
+	color: #c62828;
+
+}
+
+.performance-grade {
+
+	font-size: 16px;
+
+	font-weight: 700;
+
+	padding: 6px 12px;
+
+	border-radius: 8px;
+
+	text-align: center;
+
+	color: #fff;
+
+}
+
+.performance-grade.grade-aplus { background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%); }
+
+.performance-grade.grade-a { background: linear-gradient(135deg, #2196F3 0%, #64B5F6 100%); }
+
+.performance-grade.grade-b { background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%); }
+
+.performance-grade.grade-c { background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%); }
+
+.performance-grade.grade-d { background: linear-gradient(135deg, #9E9E9E 0%, #BDBDBD 100%); }
+
+.performance-grade.grade-f { background: linear-gradient(135deg, #f44336 0%, #EF5350 100%); }
+
+.sms-row-actions {
+
+	display: flex;
+
+	gap: 8px;
+
+}
+
+.sms-action-btn {
+
+	display: inline-flex;
+
+	align-items: center;
+
+	gap: 6px;
+
+	padding: 6px 10px;
+
+	border-radius: 6px;
+
+	text-decoration: none;
+
+	font-size: 12px;
+
+	font-weight: 600;
+
+	transition: all 0.3s ease;
+
+}
+
+.sms-action-btn.edit {
+
+	background: #e3f2fd;
+
+	color: #1565c0;
+
+}
+
+.sms-action-btn.edit:hover {
+
+	background: #bbdefb;
+
+	color: #0d47a1;
+
+}
+
+.sms-action-btn.delete {
+
+	background: #ffebee;
+
+	color: #c62828;
+
+}
+
+.sms-action-btn.delete:hover {
+
+	background: #ffcdd2;
+
+	color: #b71c1c;
+
+}
+
+.no-results {
+
+	text-align: center !important;
+
+	padding: 40px !important;
+
+	color: #6c757d !important;
+
+	font-size: 16px !important;
+
+}
+
+
+
+/* Modern Form Styles */
+
+.form-subtitle {
+
+	margin: 8px 0 0;
+
+	color: #6c757d;
+
+	font-size: 14px;
+
+	font-weight: 400;
+
+}
+
+.sms-modern-form {
+
+	max-width: 800px;
+
+}
+
+.sms-form-grid {
+
+	display: grid;
+
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+
+	gap: 25px;
+
+	margin-bottom: 30px;
+
+}
+
+.sms-form-field {
+
+	display: flex;
+
+	flex-direction: column;
+
+}
+
+.sms-form-label {
+
+	display: flex;
+
+	align-items: center;
+
+	gap: 8px;
+
+	margin-bottom: 8px;
+
+	border: 1px solid #e9ecef;
+
+	border-radius: 16px;
+
+	box-shadow: 0 8px 22px rgba(0,0,0,0.06);
+
+	overflow: hidden;
+
+	margin-bottom: 25px;
+
+}
+
+.sms-panel-header {
+
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+
+	padding: 20px 25px;
+
+	border-bottom: 1px solid #e9ecef;
+
+}
+
+.sms-panel-header h2 {
+
+	margin: 0;
+
+	color: #2c3e50;
+
+	font-size: 18px;
+
+	font-weight: 600;
+
+}
+
+.sms-panel-body {
+
+	padding: 25px;
+
+}
+
+
+
+/* Responsive Design */
+
+@media (max-width: 768px) {
+
+	.sms-results-header {
+
+		flex-direction: column;
+
+		gap: 15px;
+
+	}
+
+	.sms-results-stats-grid {
+
+		grid-template-columns: 1fr;
+
+	}
+
+	.sms-filter-grid {
+
+		grid-template-columns: 1fr;
+
+	}
+
+	.sms-chart-legend {
+
+		flex-wrap: wrap;
+
+	}
+
+	.sms-chart-bars {
+
+		gap: 8px;
+
+	}
+
+	.sms-table-header {
+
+		flex-direction: column;
+
+		gap: 15px;
+
+		align-items: flex-start;
+
+	}
+
+	.sms-modern-table {
+
+		font-size: 14px;
+
+	}
+
+	.sms-performance-cell {
+
+		gap: 4px;
+
+	}
+
+	.marks-obtained {
+
+		font-size: 16px;
+
+	}
+
+	.performance-grade {
+
+		font-size: 14px;
+
+	}
+
+}
+
+
+
+@media print {
+
+	.sms-results-header,
+
+	.sms-results-stats-grid,
+
+	.sms-performance-chart,
+
+	.sms-panel-header,
+
+	.sms-table-header,
+
+	.sms-row-actions {
+
+		display: none !important;
+
+	}
+
+	.sms-modern-table {
+
+		border: 1px solid #000 !important;
+
+	}
+
+	.sms-modern-table thead th,
+
+	.sms-modern-table tbody td {
+
+		border: 1px solid #000 !important;
+
+		padding: 8px !important;
+
+	}
+
+}
+
 </style>
 
+
+
 <div class="wrap">
+
+
+
 	<div class="sms-results-page">
+
+
+
 		<div class="sms-results-header">
+
+
+
 			<div class="sms-results-title">
+
+
+
 				<h1><?php esc_html_e( 'Exam Results', 'school-management-system' ); ?></h1>
-				<div class="sms-results-subtitle"><?php esc_html_e( 'Manage student exam results, grades, and performance.', 'school-management-system' ); ?></div>
+
+
+
+				<div class="sms-results-subtitle"><?php esc_html_e( 'Manage student exam results, grades, and performance analytics.', 'school-management-system' ); ?></div>
+
+
+
 			</div>
+
+
+
 			<div class="sms-results-header-actions">
+
+
+
 				<?php if ( ! $show_form ) : ?>
+
+
+
 					<a class="sms-cta-btn" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results&action=add' ) ); ?>">
+
+
+
 						<span class="dashicons dashicons-plus-alt"></span>
-						<?php esc_html_e( 'Add Single Result', 'school-management-system' ); ?>
+
+
+
+						<?php esc_html_e( 'Add New Result', 'school-management-system' ); ?>
+
+
+
 					</a>
+
+
+
 				<?php else : ?>
+
+
+
 					<a class="sms-cta-btn" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results' ) ); ?>">
+
+
+
 						<span class="dashicons dashicons-arrow-left-alt"></span>
+
+
+
 						<?php esc_html_e( 'Back to Results', 'school-management-system' ); ?>
+
+
+
 					</a>
+
+
+
 				<?php endif; ?>
+
+
+
 			</div>
+
+
+
 		</div>
 
-		<?php if ( ! empty( $message ) ) : ?>
-			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+
+
+		<?php if ( ! $show_form ) : ?>
+
+			<!-- Statistics Dashboard -->
+
+			<div class="sms-results-stats-grid">
+
+				<div class="sms-stat-card total">
+
+					<div class="sms-stat-icon">
+
+						<span class="dashicons dashicons-clipboard"></span>
+
+					</div>
+
+					<div class="sms-stat-content">
+
+						<div class="sms-stat-number"><?php echo intval( $total_results ); ?></div>
+
+						<div class="sms-stat-label"><?php esc_html_e( 'Total Results', 'school-management-system' ); ?></div>
+
+					</div>
+
+				</div>
+
+				<div class="sms-stat-card passed">
+
+					<div class="sms-stat-icon">
+
+						<span class="dashicons dashicons-yes-alt"></span>
+
+					</div>
+
+					<div class="sms-stat-content">
+
+						<div class="sms-stat-number"><?php echo intval( $passed_results ); ?></div>
+
+						<div class="sms-stat-label"><?php esc_html_e( 'Passed', 'school-management-system' ); ?></div>
+
+					</div>
+
+				</div>
+
+				<div class="sms-stat-card failed">
+
+					<div class="sms-stat-icon">
+
+						<span class="dashicons dashicons-no-alt"></span>
+
+					</div>
+
+					<div class="sms-stat-content">
+
+						<div class="sms-stat-number"><?php echo intval( $failed_results ); ?></div>
+
+						<div class="sms-stat-label"><?php esc_html_e( 'Failed', 'school-management-system' ); ?></div>
+
+					</div>
+
+				</div>
+
+				<div class="sms-stat-card average">
+
+					<div class="sms-stat-icon">
+
+						<span class="dashicons dashicons-chart-bar"></span>
+
+					</div>
+
+					<div class="sms-stat-content">
+
+						<div class="sms-stat-number"><?php echo number_format( $average_percentage, 1 ); ?>%</div>
+
+						<div class="sms-stat-label"><?php esc_html_e( 'Average Score', 'school-management-system' ); ?></div>
+
+					</div>
+
+				</div>
+
+			</div>
+
+
+
+			<!-- Performance Chart -->
+
+			<div class="sms-performance-chart">
+
+				<div class="sms-chart-header">
+
+					<h3><?php esc_html_e( 'Grade Distribution', 'school-management-system' ); ?></h3>
+
+					<div class="sms-chart-legend">
+
+						<span class="grade-legend grade-a+">A+</span>
+
+						<span class="grade-legend grade-a">A</span>
+
+						<span class="grade-legend grade-b">B</span>
+
+						<span class="grade-legend grade-c">C</span>
+
+						<span class="grade-legend grade-d">D</span>
+
+						<span class="grade-legend grade-f">F</span>
+
+					</div>
+
+				</div>
+
+				<div class="sms-chart-bars">
+
+					<?php
+
+					$grade_stats = Result::get_grade_distribution();
+
+					$total_for_chart = array_sum( $grade_stats );
+
+					foreach ( [ 'A+', 'A', 'B', 'C', 'D', 'F' ] as $grade ) {
+
+						$count = $grade_stats[ $grade ] ?? 0;
+
+						$percentage = $total_for_chart > 0 ? ( $count / $total_for_chart ) * 100 : 0;
+
+						echo '<div class="chart-bar-container">';
+
+						echo '<div class="chart-bar grade-' . strtolower( $grade ) . '" style="height: ' . $percentage . '%"></div>';
+
+						echo '<div class="chart-label">' . $grade . '</div>';
+
+						echo '<div class="chart-count">' . $count . '</div>';
+
+						echo '</div>';
+
+					}
+
+					?>
+
+				</div>
+
+			</div>
+
 		<?php endif; ?>
 
-		<h2 class="nav-tab-wrapper">
-			<a href="?page=sms-results&tab=view_results" class="nav-tab <?php echo 'view_results' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'View Results', 'school-management-system' ); ?></a>
-			<a href="?page=sms-results&tab=bulk_entry" class="nav-tab <?php echo 'bulk_entry' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Bulk Result Entry', 'school-management-system' ); ?></a>
-			<a href="?page=sms-results&tab=analytics" class="nav-tab <?php echo 'analytics' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Analytics', 'school-management-system' ); ?></a>
-		</h2>
+
+
+
+
+
 
 		<?php if ( $show_form ) : ?>
-			<!-- Single Result Form -->
-			<div class="sms-panel" id="sms-result-form">
-				<div class="sms-panel-header">
-					<h2><?php echo $is_edit ? esc_html__( 'Edit Result', 'school-management-system' ) : esc_html__( 'Add New Result', 'school-management-system' ); ?></h2>
+
+
+
+			<div class="sms-results-table-container" id="sms-result-form">
+
+
+
+				<div class="sms-table-header">
+
+					<h3><?php echo $is_edit ? esc_html__( 'Edit Result', 'school-management-system' ) : esc_html__( 'Add New Result', 'school-management-system' ); ?></h3>
+
+					<div class="sms-table-actions">
+
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results' ) ); ?>" class="sms-btn sms-btn-secondary">
+
+							<span class="dashicons dashicons-arrow-left-alt"></span>
+
+							<?php esc_html_e( 'Back to Results', 'school-management-system' ); ?>
+
+						</a>
+
+					</div>
+
 				</div>
+
+
+
 				<div class="sms-panel-body">
-					<form method="post" action="">
+
+					<form method="post" action="" id="sms-result-form-ajax" class="sms-modern-form">
+
 						<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
-						<table class="form-table">
-							<tr>
-								<th scope="row"><label for="exam_id"><?php esc_html_e( 'Exam', 'school-management-system' ); ?></label></th>
-								<td>
-									<select name="exam_id" id="exam_id" required>
+
+
+
+						<div class="sms-form-grid">
+
+							<div class="sms-form-field">
+
+								<label class="sms-form-label" for="exam_id">
+
+									<span class="dashicons dashicons-clipboard"></span>
+
+									<?php esc_html_e( 'Exam', 'school-management-system' ); ?> <span class="required">*</span>
+
+								</label>
+
+								<div class="sms-form-control">
+
+									<select name="exam_id" id="exam_id" required class="sms-select">
+
 										<option value=""><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></option>
+
 										<?php
+
 										$exams = Exam::get_all( array(), 1000 );
+
 										foreach ( $exams as $exam ) {
+
 											$class = Classm::get( $exam->class_id );
+
 											$class_name = $class ? $class->class_name : 'Unknown Class';
+
 											?>
-											<option value="<?php echo intval( $exam->id ); ?>" data-class-id="<?php echo intval( $exam->class_id ); ?>" <?php selected( $result ? $result->exam_id : 0, $exam->id ); ?>>
+
+											<option value="<?php echo intval( $exam->id ); ?>" <?php selected( $result ? $result->exam_id : 0, $exam->id ); ?>>
+
 												<?php echo esc_html( $exam->exam_name . ' (' . $class_name . ')' ); ?>
+
 											</option>
+
 											<?php
+
 										}
+
 										?>
+
 									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="subject_id"><?php esc_html_e( 'Subject', 'school-management-system' ); ?></label></th>
-								<td>
-									<select name="subject_id" id="subject_id" required>
+
+								</div>
+
+							</div>
+
+
+
+							<div class="sms-form-field">
+
+								<label class="sms-form-label" for="subject_id">
+
+									<span class="dashicons dashicons-book"></span>
+
+									<?php esc_html_e( 'Subject', 'school-management-system' ); ?> <span class="required">*</span>
+
+								</label>
+
+								<div class="sms-form-control">
+
+									<select name="subject_id" id="subject_id" required class="sms-select">
+
 										<option value=""><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></option>
+
 										<?php
+
 										$subjects = Subject::get_all( array(), 1000 );
+
 										foreach ( $subjects as $subject ) {
+
 											?>
+
 											<option value="<?php echo intval( $subject->id ); ?>" <?php selected( $result ? $result->subject_id : 0, $subject->id ); ?>>
+
 												<?php echo esc_html( $subject->subject_name . ' (' . $subject->subject_code . ')' ); ?>
+
 											</option>
+
 											<?php
+
 										}
+
 										?>
+
 									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="student_id"><?php esc_html_e( 'Student', 'school-management-system' ); ?></label></th>
-								<td>
-									<select name="student_id" id="student_id" required>
+
+								</div>
+
+							</div>
+
+
+
+							<div class="sms-form-field">
+
+								<label class="sms-form-label" for="student_id">
+
+									<span class="dashicons dashicons-users"></span>
+
+									<?php esc_html_e( 'Student', 'school-management-system' ); ?> <span class="required">*</span>
+
+								</label>
+
+								<div class="sms-form-control">
+
+									<select name="student_id" id="student_id" required class="sms-select">
+
 										<option value=""><?php esc_html_e( 'Select Student', 'school-management-system' ); ?></option>
+
 										<?php
-										// Pre-fetch enrollments to map students to classes.
-										$student_class_map = array();
-										$all_enrollments = Enrollment::get_all( array( 'status' => 'active' ), 5000 );
-										if ( ! empty( $all_enrollments ) ) {
-											foreach ( $all_enrollments as $enr ) {
-												$student_class_map[ $enr->student_id ] = $enr->class_id;
-											}
-										}
 
 										$students = Student::get_all( array(), 1000 );
+
 										foreach ( $students as $student ) {
-											$s_class_id = isset( $student_class_map[ $student->id ] ) ? $student_class_map[ $student->id ] : 0;
+
 											?>
-											<option value="<?php echo intval( $student->id ); ?>" data-class-id="<?php echo intval( $s_class_id ); ?>" <?php selected( $result ? $result->student_id : 0, $student->id ); ?>>
+
+											<option value="<?php echo intval( $student->id ); ?>" <?php selected( $result ? $result->student_id : 0, $student->id ); ?>>
+
 												<?php echo esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ); ?>
+
 											</option>
+
 											<?php
+
 										}
+
 										?>
+
 									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="obtained_marks"><?php esc_html_e( 'Obtained Marks', 'school-management-system' ); ?></label></th>
-								<td>
-									<input type="number" name="obtained_marks" id="obtained_marks" step="0.01" required value="<?php echo $result ? esc_attr( $result->obtained_marks ) : ''; ?>" />
-								</td>
-							</tr>
-						</table>
-						<?php if ( $is_edit ) : ?>
-							<input type="hidden" name="result_id" value="<?php echo intval( $result->id ); ?>" />
-							<button type="submit" name="sms_edit_result" class="button button-primary"><?php esc_html_e( 'Update Result', 'school-management-system' ); ?></button>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'school-management-system' ); ?></a>
-						<?php else : ?>
-							<button type="submit" name="sms_add_result" class="button button-primary"><?php esc_html_e( 'Add Result', 'school-management-system' ); ?></button>
-						<?php endif; ?>
-					</form>
-					<script>
-					jQuery(document).ready(function($) {
-						function filterStudents() {
-							var examSelect = $('#exam_id');
-							var studentSelect = $('#student_id');
-							var selectedOption = examSelect.find('option:selected');
-							var classId = selectedOption.data('class-id');
-							var currentStudent = studentSelect.val();
 
-							if (!classId) {
-								studentSelect.find('option').show();
-								return;
-							}
+								</div>
 
-							var validSelection = false;
-
-							studentSelect.find('option').each(function() {
-								var option = $(this);
-								var studentClassId = option.data('class-id');
-								
-								if (option.val() === "") {
-									option.show();
-									return;
-								}
-
-								if (studentClassId == classId) {
-									option.show();
-									if (option.val() == currentStudent) validSelection = true;
-								} else {
-									option.hide();
-								}
-							});
-
-							if (!validSelection) {
-								studentSelect.val('');
-							}
-						}
-
-						$('#exam_id').on('change', filterStudents);
-						
-						// Run on load if exam is selected
-						if ($('#exam_id').val()) {
-							filterStudents();
-						}
-					});
-					</script>
-				</div>
-			</div>
-		<?php elseif ( 'view_results' === $active_tab ) : ?>
-			<!-- View Results Tab -->
-			<div class="sms-panel" id="sms-result-filter">
-				<div class="sms-panel-header">
-					<h2><?php esc_html_e( 'Exam Results', 'school-management-system' ); ?></h2>
-				</div>
-				<div class="sms-panel-body">
-					<form method="get" action="">
-						<div class="alignleft actions">
-							<select name="class_id">
-								<option value=""><?php esc_html_e( 'All Classes', 'school-management-system' ); ?></option>
-								<?php
-								$classes = Classm::get_all();
-								foreach ( $classes as $class ) {
-									echo '<option value="' . intval( $class->id ) . '" ' . selected( $class_id_filter, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
-								}
-								?>
-							</select>
-
-							<select name="exam_id">
-								<option value=""><?php esc_html_e( 'All Exams', 'school-management-system' ); ?></option>
-								<?php
-								$exams = Exam::get_all();
-								foreach ( $exams as $exam ) {
-									echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
-								}
-								?>
-							</select>
-
-							<select name="subject_id">
-								<option value=""><?php esc_html_e( 'All Subjects', 'school-management-system' ); ?></option>
-								<?php
-								$subjects = Subject::get_all();
-								foreach ( $subjects as $subject ) {
-									echo '<option value="' . intval( $subject->id ) . '" ' . selected( $subject_id_filter, $subject->id, false ) . '>' . esc_html( $subject->subject_name ) . '</option>';
-								}
-								?>
-							</select>
-							
-							<select name="student_id">
-								<option value=""><?php esc_html_e( 'All Students', 'school-management-system' ); ?></option>
-								<?php
-								if ( $class_id_filter ) {
-									$students = Student::get_by_class( $class_id_filter );
-								} else {
-									$students = Student::get_all( array(), 1000 );
-								}
-								foreach ( $students as $student ) {
-									echo '<option value="' . intval( $student->id ) . '" ' . selected( $student_id_filter, $student->id, false ) . '>' . esc_html( $student->first_name . ' ' . $student->last_name . ' (' . $student->roll_number . ')' ) . '</option>';
-								}
-								?>
-							</select>
-
-							<button type="submit" class="button"><?php esc_html_e( 'Filter', 'school-management-system' ); ?></button>
-							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-results&action=export_results&class_id=' . $class_id_filter . '&exam_id=' . $exam_id_filter . '&subject_id=' . $subject_id_filter . '&student_id=' . $student_id_filter ), 'sms_export_results_nonce' ) ); ?>" class="button button-primary" style="margin-left: 5px;">
-								<span class="dashicons dashicons-download" style="line-height: 1.3;"></span> <?php esc_html_e( 'Export CSV', 'school-management-system' ); ?>
-							</a>
-						</div>
-					</form>
-				</div>
-			</div>
-
-			<form method="post">
-				<?php wp_nonce_field( 'sms_bulk_delete_results_nonce', 'sms_bulk_delete_results_nonce' ); ?>
-				<div class="tablenav top">
-					<div class="alignleft actions bulkactions">
-						<select name="action">
-							<option value="-1"><?php esc_html_e( 'Bulk Actions', 'school-management-system' ); ?></option>
-							<option value="bulk_delete_results"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></option>
-						</select>
-						<input type="submit" class="button action" value="<?php esc_attr_e( 'Apply', 'school-management-system' ); ?>">
-					</div>
-				</div>
-			<table class="wp-list-table widefat fixed striped">
-				<thead>
-					<tr>
-						<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-results" type="checkbox"></td>
-						<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Exam', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Subject', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Marks', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php
-					$filters = array(
-						'class_id'   => $class_id_filter,
-						'exam_id'    => $exam_id_filter,
-						'subject_id' => $subject_id_filter,
-						'student_id' => $student_id_filter,
-					);
-					$results = Result::get_by_filters( $filters );
-
-					if ( ! empty( $results ) ) {
-						foreach ( $results as $row ) {
-							?>
-							<tr>
-								<th scope="row" class="check-column"><input type="checkbox" name="result_ids[]" value="<?php echo intval( $row->id ); ?>"></th>
-								<td>
-									<strong><?php echo esc_html( $row->first_name . ' ' . $row->last_name ); ?></strong><br>
-									<span class="description"><?php echo esc_html( $row->roll_number ); ?></span>
-								</td>
-								<td><?php echo esc_html( $row->class_name ); ?></td>
-								<td><?php echo esc_html( $row->exam_name ); ?></td>
-								<td><?php echo esc_html( $row->subject_name ); ?></td>
-								<td><?php echo esc_html( $row->obtained_marks ); ?></td>
-								<td>
-									<span class="sms-status-badge" style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px;">
-										<?php echo esc_html( $row->grade ); ?>
-									</span>
-									(<?php echo number_format( $row->percentage, 1 ); ?>%)
-								</td>
-								<td>
-									<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results&action=edit&id=' . $row->id ) ); ?>" class="button button-small"><?php esc_html_e( 'Edit', 'school-management-system' ); ?></a>
-									<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-results&action=delete&id=' . $row->id ), 'sms_delete_result_nonce' ) ); ?>" class="button button-small button-link-delete" style="color: #a00;" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete this result?', 'school-management-system' ); ?>')"><?php esc_html_e( 'Delete', 'school-management-system' ); ?></a>
-								</td>
-							</tr>
-							<?php
-						}
-					} else {
- 						echo '<tr><td colspan="8">' . esc_html__( 'No results found.', 'school-management-system' ) . '</td></tr>';
-					}
-					?>
-				</tbody>
-			</table>
-			</form>
-
-		<?php elseif ( 'bulk_entry' === $active_tab ) : ?>
-			<!-- Bulk Entry Tab -->
-			<div class="sms-panel">
-				<div class="sms-panel-header">
-					<h2><?php esc_html_e( 'Bulk Upload via CSV', 'school-management-system' ); ?></h2>
-				</div>
-				<div class="sms-panel-body">
-					<p><?php esc_html_e( 'Upload a CSV file with columns: `roll_number`, `obtained_marks`, `remarks`. Select the corresponding Exam and Subject below.', 'school-management-system' ); ?></p>
-					<form method="post" enctype="multipart/form-data">
-						<?php wp_nonce_field( 'sms_import_results_nonce', 'sms_import_results_nonce' ); ?>
-						<table class="form-table">
-							<tr>
-								<th scope="row"><label for="import_exam_id"><?php esc_html_e( 'Exam', 'school-management-system' ); ?></label></th>
-								<td>
-									<select name="exam_id" id="import_exam_id" required>
-										<option value=""><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></option>
-										<?php
-										foreach ( Exam::get_all( array(), 1000 ) as $exam ) {
-											echo '<option value="' . intval( $exam->id ) . '">' . esc_html( $exam->exam_name ) . '</option>';
-										}
-										?>
-									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="import_subject_id"><?php esc_html_e( 'Subject', 'school-management-system' ); ?></label></th>
-								<td>
-									<select name="subject_id" id="import_subject_id" required>
-										<option value=""><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></option>
-										<?php
-										foreach ( Subject::get_all( array(), 1000 ) as $subject ) {
-											echo '<option value="' . intval( $subject->id ) . '">' . esc_html( $subject->subject_name ) . '</option>';
-										}
-										?>
-									</select>
-								</td>
-							</tr>
-							<tr>
-								<th scope="row"><label for="import_file"><?php esc_html_e( 'CSV File', 'school-management-system' ); ?></label></th>
-								<td><input type="file" name="import_file" id="import_file" accept=".csv" required /></td>
-							</tr>
-						</table>
-						<button type="submit" name="sms_import_results_csv" class="button button-primary"><?php esc_html_e( 'Import Results', 'school-management-system' ); ?></button>
-					</form>
-				</div>
-			</div>
-
-		<?php elseif ( 'bulk_entry' === $active_tab ) : ?>
-			<!-- Bulk Entry Tab -->
-			<div class="sms-panel">
-				<div class="sms-panel-header">
-					<h2><?php esc_html_e( 'Bulk Result Entry', 'school-management-system' ); ?></h2>
-				</div>
-				<div class="sms-panel-body">
-					<form method="get" action="">
-						<input type="hidden" name="page" value="sms-results" />
-						<input type="hidden" name="tab" value="bulk_entry" />
-						<div style="display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px;">
-							<div>
-								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></label>
-								<select name="class_id" required>
-									<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
-									<?php
-									$classes = Classm::get_all();
-									foreach ( $classes as $class ) {
-										echo '<option value="' . intval( $class->id ) . '" ' . selected( $class_id_filter, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
-									}
-									?>
-								</select>
-							</div>
-							<div>
-								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></label>
-								<select name="exam_id" required>
-									<option value=""><?php esc_html_e( 'Select Exam', 'school-management-system' ); ?></option>
-									<?php
-									$exams = Exam::get_all();
-									foreach ( $exams as $exam ) {
-										echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
-									}
-									?>
-								</select>
-							</div>
-							<div>
-								<label style="display: block; margin-bottom: 5px; font-weight: 600;"><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></label>
-								<select name="subject_id" required>
-									<option value=""><?php esc_html_e( 'Select Subject', 'school-management-system' ); ?></option>
-									<?php
-									$subjects = Subject::get_all();
-									foreach ( $subjects as $subject ) {
-										echo '<option value="' . intval( $subject->id ) . '" ' . selected( $subject_id_filter, $subject->id, false ) . '>' . esc_html( $subject->subject_name ) . '</option>';
-									}
-									?>
-								</select>
-							</div>
-							<button type="submit" class="button button-primary"><?php esc_html_e( 'Load Students', 'school-management-system' ); ?></button>
-						</div>
-					</form>
-
-					<?php if ( $class_id_filter && $exam_id_filter && $subject_id_filter ) : ?>
-						<?php 
-						$students = Student::get_by_class( $class_id_filter );
-						$exam = Exam::get( $exam_id_filter );
-						?>
-						<form method="post" action="">
-							<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
-							<input type="hidden" name="exam_id" value="<?php echo intval( $exam_id_filter ); ?>">
-							<input type="hidden" name="subject_id" value="<?php echo intval( $subject_id_filter ); ?>">
-							
-							<div style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 5px;">
-								<strong><?php esc_html_e( 'Max Marks:', 'school-management-system' ); ?></strong> <?php echo esc_html( $exam->total_marks ); ?> | 
-								<strong><?php esc_html_e( 'Passing Marks:', 'school-management-system' ); ?></strong> <?php echo esc_html( $exam->passing_marks ); ?>
 							</div>
 
-							<table class="wp-list-table widefat fixed striped">
-								<thead>
-									<tr>
-										<th><?php esc_html_e( 'Roll No', 'school-management-system' ); ?></th>
-										<th><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></th>
-										<th><?php esc_html_e( 'Obtained Marks', 'school-management-system' ); ?></th>
-										<th><?php esc_html_e( 'Remarks', 'school-management-system' ); ?></th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php foreach ( $students as $student ) : ?>
-										<?php
-										// Check for existing result
-										global $wpdb;
-										$table = $wpdb->prefix . 'sms_results';
-										$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE student_id = %d AND exam_id = %d AND subject_id = %d", $student->id, $exam_id_filter, $subject_id_filter ) );
-										$marks = $existing ? $existing->obtained_marks : '';
-										$remarks = $existing ? $existing->remarks : '';
-										$is_locked = ( $existing && 'published' === $existing->status && ! current_user_can( 'manage_options' ) );
-										?>
-										<tr>
-											<td><?php echo esc_html( $student->roll_number ); ?></td>
-											<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
-											<td>
-												<input type="number" name="results[<?php echo intval( $student->id ); ?>][marks]" value="<?php echo esc_attr( $marks ); ?>" step="0.01" max="<?php echo esc_attr( $exam->total_marks ); ?>" style="width: 100px;" <?php disabled( $is_locked, true ); ?>>
-											</td>
-											<td>
-												<input type="text" name="results[<?php echo intval( $student->id ); ?>][remarks]" value="<?php echo esc_attr( $remarks ); ?>" style="width: 100%;" <?php disabled( $is_locked, true ); ?>>
-											</td>
-										</tr>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
-							
-							<div style="margin-top: 20px; display: flex; align-items: center; gap: 15px;">
-								<label>
-									<?php esc_html_e( 'Status:', 'school-management-system' ); ?>
-									<select name="status">
-										<option value="published"><?php esc_html_e( 'Published', 'school-management-system' ); ?></option>
-										<option value="draft"><?php esc_html_e( 'Draft', 'school-management-system' ); ?></option>
-									</select>
+
+
+							<div class="sms-form-field">
+
+								<label class="sms-form-label" for="obtained_marks">
+
+									<span class="dashicons dashicons-chart-line"></span>
+
+									<?php esc_html_e( 'Obtained Marks', 'school-management-system' ); ?> <span class="required">*</span>
+
 								</label>
-								<button type="submit" name="sms_bulk_save_results" class="button button-primary button-large"><?php esc_html_e( 'Save All Results', 'school-management-system' ); ?></button>
-								<?php if ( $is_locked ) : ?>
-									<p class="description"><?php esc_html_e( 'Some results are published and locked. Only an administrator can make changes.', 'school-management-system' ); ?></p>
-								<?php endif; ?>
-							</div>
-						</form>
-					<?php endif; ?>
-				</div>
-			</div>
 
-		<?php elseif ( 'analytics' === $active_tab ) : ?>
-			<!-- Analytics Tab -->
-			<div class="sms-panel">
-				<div class="sms-panel-header">
-					<h2><?php esc_html_e( 'Performance Analytics', 'school-management-system' ); ?></h2>
-				</div>
-				<div class="sms-panel-body">
-					<form method="get" action="">
-						<input type="hidden" name="page" value="sms-results" />
-						<input type="hidden" name="tab" value="analytics" />
-						<select name="exam_id" onchange="this.form.submit()">
-							<option value=""><?php esc_html_e( 'Select Exam to Analyze', 'school-management-system' ); ?></option>
-							<?php
-							$exams = Exam::get_all();
-							foreach ( $exams as $exam ) {
-								echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
-							}
-							?>
-						</select>
-					</form>
+								<div class="sms-form-control">
 
-					<?php if ( $exam_id_filter ) : ?>
-						<?php
-						$exam = Exam::get( $exam_id_filter );
-						$results = Result::get_exam_results( $exam_id_filter );
-						$total_students = count( $results );
-						$passed = 0;
-						$total_marks_sum = 0;
-						$highest = 0;
-						
-						foreach ( $results as $res ) {
-							if ( $res->obtained_marks >= $exam->passing_marks ) $passed++;
-							$total_marks_sum += $res->obtained_marks;
-							if ( $res->obtained_marks > $highest ) $highest = $res->obtained_marks;
-						}
-						
-						$avg = $total_students > 0 ? $total_marks_sum / $total_students : 0;
-						$pass_percent = $total_students > 0 ? ( $passed / $total_students ) * 100 : 0;
-						?>
-						
-						<div class="sms-analytics-grid" style="margin-top: 20px;">
-							<div class="sms-stat-box">
-								<h4><?php esc_html_e( 'Average Score', 'school-management-system' ); ?></h4>
-								<div class="value"><?php echo number_format( $avg, 1 ); ?></div>
-								<div class="sms-progress-bar"><div class="sms-progress-fill" style="width: <?php echo ( $avg / $exam->total_marks ) * 100; ?>%"></div></div>
+									<input type="number" name="obtained_marks" id="obtained_marks" step="0.01" required class="sms-input" value="<?php echo $result ? esc_attr( $result->obtained_marks ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter obtained marks', 'school-management-system' ); ?>" />
+
+									<div class="input-help" id="total-marks-info"></div>
+
+								</div>
+
 							</div>
-							<div class="sms-stat-box">
-								<h4><?php esc_html_e( 'Pass Percentage', 'school-management-system' ); ?></h4>
-								<div class="value"><?php echo number_format( $pass_percent, 1 ); ?>%</div>
-								<div class="sms-progress-bar"><div class="sms-progress-fill" style="width: <?php echo $pass_percent; ?>%; background: <?php echo $pass_percent > 50 ? '#4caf50' : '#f44336'; ?>"></div></div>
-							</div>
-							<div class="sms-stat-box">
-								<h4><?php esc_html_e( 'Highest Score', 'school-management-system' ); ?></h4>
-								<div class="value"><?php echo $highest; ?> <span style="font-size: 12px; color: #999;">/ <?php echo $exam->total_marks; ?></span></div>
-							</div>
+
 						</div>
 
-						<h3 style="margin-top: 30px;"><?php esc_html_e( 'Top Performers', 'school-management-system' ); ?></h3>
-						<table class="wp-list-table widefat fixed striped">
-							<thead>
-								<tr>
-									<th><?php esc_html_e( 'Rank', 'school-management-system' ); ?></th>
-									<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
-									<th><?php esc_html_e( 'Marks', 'school-management-system' ); ?></th>
-									<th><?php esc_html_e( 'Grade', 'school-management-system' ); ?></th>
-								</tr>
-							</thead>
-							<tbody>
-								<?php 
-								$count = 0;
-								foreach ( $results as $res ) : 
-									if ( $count >= 5 ) break;
-									$student = Student::get( $res->student_id );
-									$count++;
-								?>
-								<tr>
-									<td>#<?php echo $count; ?></td>
-									<td><?php echo esc_html( $student->first_name . ' ' . $student->last_name ); ?></td>
-									<td><?php echo esc_html( $res->obtained_marks ); ?></td>
-									<td><?php echo esc_html( $res->grade ); ?></td>
-								</tr>
-								<?php endforeach; ?>
-							</tbody>
-						</table>
-					<?php endif; ?>
+
+
+						<div class="sms-form-actions">
+
+							<?php if ( $is_edit ) : ?>
+
+								<input type="hidden" name="result_id" value="<?php echo intval( $result->id ); ?>" />
+
+								<button type="submit" name="sms_edit_result" class="sms-btn sms-btn-primary">
+
+									<span class="dashicons dashicons-edit"></span>
+
+									<?php esc_html_e( 'Update Result', 'school-management-system' ); ?>
+
+								</button>
+
+							<?php else : ?>
+
+								<button type="submit" name="sms_add_result" class="sms-btn sms-btn-primary">
+
+									<span class="dashicons dashicons-plus-alt"></span>
+
+									<?php esc_html_e( 'Add Result', 'school-management-system' ); ?>
+
+								</button>
+
+							<?php endif; ?>
+
+						</div>
+
+
+
+						<div class="form-loading" id="form-loading" style="display: none;">
+
+							<div class="loading-spinner"></div>
+
+							<p><?php esc_html_e( 'Processing...', 'school-management-system' ); ?></p>
+
+						</div>
+
+					</form>
+
 				</div>
+
 			</div>
+
+
+
+		<?php else : ?>
+
+
+
+			<div class="sms-panel" id="sms-result-filter">
+
+
+
+				<div class="sms-panel-header">
+
+
+
+					<h2><?php esc_html_e( 'Filter Results', 'school-management-system' ); ?></h2>
+
+
+
+				</div>
+
+
+
+				<div class="sms-panel-body">
+
+
+
+					<form method="get" action="">
+
+
+
+						<input type="hidden" name="page" value="sms-results">
+
+
+
+						<div class="sms-filter-grid">
+
+
+
+							<div class="sms-filter-field">
+
+
+
+								<label><?php esc_html_e( 'Class', 'school-management-system' ); ?></label>
+
+
+
+								<select name="class_id">
+
+
+
+									<option value=""><?php esc_html_e( 'All Classes', 'school-management-system' ); ?></option>
+
+
+
+									<?php
+
+
+
+									$classes = Classm::get_all();
+
+
+
+									foreach ( $classes as $class ) {
+
+
+
+										echo '<option value="' . intval( $class->id ) . '" ' . selected( $class_id_filter, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
+
+
+
+									}
+
+
+
+									?>
+
+
+
+								</select>
+
+
+
+							</div>
+
+
+
+							<div class="sms-filter-field">
+
+
+
+								<label><?php esc_html_e( 'Exam', 'school-management-system' ); ?></label>
+
+
+
+								<select name="exam_id">
+
+
+
+									<option value=""><?php esc_html_e( 'All Exams', 'school-management-system' ); ?></option>
+
+
+
+									<?php
+
+
+
+									$exams = Exam::get_all();
+
+
+
+									foreach ( $exams as $exam ) {
+
+
+
+										echo '<option value="' . intval( $exam->id ) . '" ' . selected( $exam_id_filter, $exam->id, false ) . '>' . esc_html( $exam->exam_name ) . '</option>';
+
+
+
+									}
+
+
+
+									?>
+
+
+
+								</select>
+
+
+
+							</div>
+
+
+
+							<div class="sms-filter-field">
+
+
+
+								<label><?php esc_html_e( 'Subject', 'school-management-system' ); ?></label>
+
+
+
+								<select name="subject_id">
+
+
+
+									<option value=""><?php esc_html_e( 'All Subjects', 'school-management-system' ); ?></option>
+
+
+
+									<?php
+
+
+
+									$subjects = Subject::get_all();
+
+
+
+									foreach ( $subjects as $subject ) {
+
+
+
+										echo '<option value="' . intval( $subject->id ) . '" ' . selected( $subject_id_filter, $subject->id, false ) . '>' . esc_html( $subject->subject_name ) . '</option>';
+
+
+
+									}
+
+
+
+									?>
+
+
+
+								</select>
+
+
+
+							</div>
+
+
+
+							<div class="sms-filter-actions">
+
+
+
+								<button type="submit" class="sms-btn sms-btn-primary">
+
+
+
+									<span class="dashicons dashicons-filter"></span>
+
+
+
+									<?php esc_html_e( 'Apply Filters', 'school-management-system' ); ?>
+
+
+
+								</button>
+
+
+
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results' ) ); ?>" class="sms-btn sms-btn-secondary">
+
+
+
+									<span class="dashicons dashicons-dismiss"></span>
+
+
+
+									<?php esc_html_e( 'Clear', 'school-management-system' ); ?>
+
+
+
+								</a>
+
+
+
+							</div>
+
+
+
+						</div>
+
+
+
+					</form>
+
+
+
+				</div>
+
+
+
+			</div>
+
+
+
+			<div class="sms-results-table-container">
+
+				<div class="sms-table-header">
+
+					<h3><?php esc_html_e( 'Results List', 'school-management-system' ); ?></h3>
+
+					<div class="sms-table-actions">
+
+						<button class="sms-btn sms-btn-secondary" onclick="window.print()">
+
+							<span class="dashicons dashicons-printer"></span>
+
+							<?php esc_html_e( 'Print', 'school-management-system' ); ?>
+
+						</button>
+
+					</div>
+
+				</div>
+
+
+
+				<table class="wp-list-table widefat fixed striped sms-modern-table">
+
+
+
+					<thead>
+
+
+
+						<tr>
+
+
+
+							<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
+
+
+
+							<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
+
+
+
+							<th><?php esc_html_e( 'Exam', 'school-management-system' ); ?></th>
+
+
+
+							<th><?php esc_html_e( 'Subject', 'school-management-system' ); ?></th>
+
+
+
+							<th><?php esc_html_e( 'Performance', 'school-management-system' ); ?></th>
+
+
+
+							<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
+
+
+
+						</tr>
+
+
+
+					</thead>
+
+
+
+					<tbody>
+
+
+
+						<?php
+
+
+
+						$filters = array(
+
+
+
+							'class_id'   => $class_id_filter,
+
+
+
+							'exam_id'    => $exam_id_filter,
+
+
+
+							'subject_id' => $subject_id_filter,
+
+
+
+						);
+
+
+
+						$results = Result::get_by_filters( $filters );
+
+
+
+
+
+
+
+						if ( ! empty( $results ) ) {
+
+
+
+							foreach ( $results as $row ) {
+
+
+
+								$grade_class = 'grade-' . strtolower( str_replace( '+', 'plus', $row->grade ) );
+
+								$performance_class = $row->percentage >= $row->passing_marks ? 'performance-pass' : 'performance-fail';
+
+
+
+								?>
+
+
+
+								<tr>
+
+
+
+									<td>
+
+
+
+										<div class="sms-student-info">
+
+											<div class="student-avatar">
+
+												<span class="dashicons dashicons-user"></span>
+
+											</div>
+
+											<div class="student-details">
+
+												<strong><?php echo esc_html( $row->first_name . ' ' . $row->last_name ); ?></strong><br>
+
+												<span class="description"><?php echo esc_html( $row->roll_number ); ?></span>
+
+											</div>
+
+										</div>
+
+
+
+									</td>
+
+
+
+									<td><span class="sms-class-badge"><?php echo esc_html( $row->class_name ); ?></span></td>
+
+
+
+									<td><?php echo esc_html( $row->exam_name ); ?></td>
+
+
+
+									<td><?php echo esc_html( $row->subject_name ); ?></td>
+
+
+
+									<td>
+
+										<div class="sms-performance-cell">
+
+											<div class="performance-marks">
+
+												<span class="marks-obtained"><?php echo esc_html( $row->obtained_marks ); ?></span>
+
+												<span class="marks-total">/ <?php echo esc_html( $row->total_marks ?? '100' ); ?></span>
+
+											</div>
+
+											<div class="performance-percentage <?php echo esc_attr( $performance_class ); ?>">
+
+												<?php echo number_format( $row->percentage, 1 ); ?>%
+
+											</div>
+
+											<div class="performance-grade <?php echo esc_attr( $grade_class ); ?>">
+
+												<?php echo esc_html( $row->grade ); ?>
+
+											</div>
+
+										</div>
+
+
+
+									</td>
+
+
+
+									<td>
+
+										<div class="sms-row-actions">
+
+											<a class="sms-action-btn edit" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-results&action=edit&id=' . $row->id ) ); ?>">
+
+												<span class="dashicons dashicons-edit"></span>
+
+												<?php esc_html_e( 'Edit', 'school-management-system' ); ?>
+
+											</a>
+
+											<a class="sms-action-btn delete" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-results&action=delete&id=' . $row->id ), 'sms_delete_result_nonce', '_wpnonce' ) ); ?>" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete this result?', 'school-management-system' ); ?>')">
+
+												<span class="dashicons dashicons-trash"></span>
+
+												<?php esc_html_e( 'Delete', 'school-management-system' ); ?>
+
+											</a>
+
+										</div>
+
+									</td>
+
+
+
+								</tr>
+
+
+
+								<?php
+
+
+
+							}
+
+
+
+						} else {
+
+
+
+							echo '<tr><td colspan="6" class="no-results">' . esc_html__( 'No results found.', 'school-management-system' ) . '</td></tr>';
+
+
+
+						}
+
+
+
+						?>
+
+
+
+					</tbody>
+
+
+
+				</table>
+
+			</div>
+
+
+
 		<?php endif; ?>
+
+
+
 	</div>
+
+
+
 </div>
+
+
+
+<script>
+
+jQuery(document).ready(function($) {
+
+	// Store exam data for total marks display
+
+	var examData = <?php echo json_encode(array_reduce(Exam::get_all(array(), 1000), function($carry, $exam) {
+
+		$carry[$exam->id] = array(
+
+			'total_marks' => $exam->total_marks,
+
+			'passing_marks' => $exam->passing_marks
+
+		);
+
+		return $carry;
+
+	}, array())); ?>;
+
+
+
+	// Show total marks when exam is selected
+
+	$('#exam_id').on('change', function() {
+
+		var examId = $(this).val();
+
+		var totalMarksInfo = $('#total-marks-info');
+
+		
+
+		if (examId && examData[examId]) {
+
+			var exam = examData[examId];
+
+			totalMarksInfo.html('Total Marks: ' + exam.total_marks + ' | Passing Marks: ' + exam.passing_marks);
+
+		} else {
+
+			totalMarksInfo.html('');
+
+		}
+
+	});
+
+
+
+	// Handle form submission via AJAX
+
+	$('#sms-result-form-ajax').on('submit', function(e) {
+
+		e.preventDefault();
+
+		
+
+		var $form = $(this);
+
+		var $loading = $('#form-loading');
+
+		var $submitBtn = $form.find('button[type="submit"]');
+
+		var isEdit = $form.find('input[name="result_id"]').length > 0;
+
+		
+
+		// Client-side validation
+
+		var examId = $('#exam_id').val();
+
+		var subjectId = $('#subject_id').val();
+
+		var studentId = $('#student_id').val();
+
+		var obtainedMarks = $('#obtained_marks').val();
+
+		
+
+		if (!examId || !subjectId || !studentId || !obtainedMarks) {
+
+			showFormMessage('error', 'Please fill in all required fields.');
+
+			return false;
+
+		}
+
+		
+
+		if (parseFloat(obtainedMarks) < 0) {
+
+			showFormMessage('error', 'Obtained marks cannot be negative.');
+
+			return false;
+
+		}
+
+		
+
+		// Show loading state
+
+		$loading.show();
+
+		$submitBtn.prop('disabled', true);
+
+		
+
+		// Prepare form data
+
+		var formData = new FormData(this);
+
+		formData.append('action', 'sms_add_result');
+
+		
+
+		console.log('Submitting form with data:', {
+
+			exam_id: examId,
+
+			subject_id: subjectId,
+
+			student_id: studentId,
+
+			obtained_marks: obtainedMarks
+
+		});
+
+		
+
+		// Send AJAX request
+
+		$.ajax({
+
+			url: ajaxurl,
+
+			type: 'POST',
+
+			data: formData,
+
+			processData: false,
+
+			contentType: false,
+
+			timeout: 10000, // 10 second timeout
+
+			success: function(response) {
+
+				$loading.hide();
+
+				$submitBtn.prop('disabled', false);
+
+				
+
+				if (response.success) {
+
+					// Show success message
+
+					showFormMessage('success', response.data.message || (isEdit ? 'Result updated successfully!' : 'Result added successfully!'));
+
+					
+
+					// If adding new result, clear form and redirect after delay
+
+					if (!isEdit) {
+
+						// Clear form
+
+						$form[0].reset();
+
+						$('#total-marks-info').html('');
+
+						
+
+						// Redirect to results list after 2 seconds to show the new result
+
+						setTimeout(function() {
+
+							window.location.href = '<?php echo esc_url(admin_url('admin.php?page=sms-results')); ?>';
+
+						}, 2000);
+
+					} else {
+
+						// For edit, redirect back to list after 1 second
+
+						setTimeout(function() {
+
+							window.location.href = '<?php echo esc_url(admin_url('admin.php?page=sms-results')); ?>';
+
+						}, 1000);
+
+					}
+
+				} else {
+
+					// Show error message
+
+					showFormMessage('error', response.data.message || 'An error occurred. Please try again.');
+
+				}
+
+			},
+
+			error: function(xhr, status, error) {
+
+				$loading.hide();
+
+				$submitBtn.prop('disabled', false);
+
+				
+
+				// Try to get detailed error message
+
+				var errorMessage = 'Server error. Please try again.';
+
+				if (xhr.responseJSON && xhr.responseJSON.data) {
+
+					errorMessage = xhr.responseJSON.data;
+
+				} else if (xhr.responseText) {
+
+					try {
+
+						var response = JSON.parse(xhr.responseText);
+
+						if (response.data) {
+
+							errorMessage = response.data;
+
+						}
+
+					} catch (e) {
+
+						// If JSON parsing fails, use default message
+
+					}
+
+				}
+
+				
+
+				console.error('AJAX Error:', {
+
+					status: status,
+
+					error: error,
+
+					response: xhr.responseText
+
+				});
+
+				
+
+				showFormMessage('error', errorMessage);
+
+			}
+
+		});
+
+	});
+
+
+
+	// Show form message
+
+	function showFormMessage(type, message) {
+
+		var $message = $('.form-message');
+
+		
+
+		if ($message.length === 0) {
+
+			$message = $('<div class="form-message"><span class="dashicons"></span><span class="message-text"></span></div>');
+
+			$message.insertBefore($('#sms-result-form-ajax'));
+
+		}
+
+		
+
+		$message.removeClass('success error').addClass(type).addClass('show');
+
+		$message.find('.dashicons').removeClass().addClass('dashicons ' + (type === 'success' ? 'dashicons-yes-alt' : 'dashicons-no-alt'));
+
+		$message.find('.message-text').text(message);
+
+		
+
+		// Auto-hide after 5 seconds
+
+		setTimeout(function() {
+
+			$message.removeClass('show');
+
+		}, 5000);
+
+	}
+
+
+
+	// Add hover effects to stat cards
+
+	$('.sms-stat-card').hover(
+
+		function() {
+
+			$(this).addClass('hovered');
+
+		},
+
+		function() {
+
+			$(this).removeClass('hovered');
+
+		}
+
+	);
+
+
+
+	// Animate chart bars on page load
+
+	$('.chart-bar').each(function(index) {
+
+		var $bar = $(this);
+
+		var height = $bar.css('height');
+
+		$bar.css('height', '0');
+
+		
+
+		setTimeout(function() {
+
+			$bar.css('height', height);
+
+		}, 100 * index);
+
+	});
+
+
+
+	// Add smooth scroll to results table if coming from form submission
+
+	if (window.location.search.indexOf('sms_message=') !== -1) {
+
+		setTimeout(function() {
+
+			$('html, body').animate({
+
+				scrollTop: $('.sms-results-table-container').offset().top - 100
+
+			}, 1000);
+
+		}, 500);
+
+	}
+
+});
+
+</script>

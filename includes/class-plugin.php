@@ -108,6 +108,9 @@ class Plugin {
 
 		add_action( 'wp_ajax_sms_search_data', 'sms_ajax_search_data' );
 		add_action( 'wp_ajax_nopriv_sms_search_data', 'sms_ajax_search_data' );
+
+		add_action( 'wp_ajax_sms_add_result', 'sms_ajax_add_result' );
+		add_action( 'wp_ajax_nopriv_sms_add_result', 'sms_ajax_add_result' );
 	}
 
 	/**
