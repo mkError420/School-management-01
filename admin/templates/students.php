@@ -160,6 +160,36 @@ $pending_students = Student::count( array( 'status' => 'pending' ) );
  	margin: 0;
  }
  .sms-students-search input[type="search"] { min-width: 260px; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 10px; }
+ .sms-search-btn {
+ 	background: #2c3e50;
+ 	color: #fff;
+ 	border: none;
+ 	padding: 10px 20px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	cursor: pointer;
+ 	transition: all 0.2s;
+ 	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+ }
+ .sms-search-btn:hover {
+ 	background: #1a252f;
+ 	transform: translateY(-1px);
+ 	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+ }
+ .sms-reset-btn {
+ 	background: #fff;
+ 	color: #e74c3c;
+ 	border: 1px solid #e74c3c;
+ 	padding: 9px 19px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	text-decoration: none;
+ 	transition: all 0.2s;
+ }
+ .sms-reset-btn:hover {
+ 	background: #e74c3c;
+ 	color: #fff;
+ }
  .sms-students-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
  .sms-status-pill {
@@ -265,11 +295,24 @@ $pending_students = Student::count( array( 'status' => 'pending' ) );
 				<h2><?php esc_html_e( 'Students List', 'school-management-system' ); ?></h2>
 				<form method="get" action="" class="sms-students-search">
 					<input type="hidden" name="page" value="sms-students" />
+					<select name="class_id" style="margin-right: 10px;">
+						<option value=""><?php esc_html_e( 'All Classes', 'school-management-system' ); ?></option>
+						<?php
+						$classes = Classm::get_all( array(), 100 );
+						$selected_class = isset( $_GET['class_id'] ) ? intval( $_GET['class_id'] ) : 0;
+						foreach ( $classes as $class ) {
+							printf( '<option value="%d" %s>%s</option>', intval( $class->id ), selected( $selected_class, $class->id, false ), esc_html( $class->class_name ) );
+						}
+						?>
+					</select>
 					<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by name, email, or roll...', 'school-management-system' ); ?>" />
-					<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
-					<?php if ( ! empty( $_GET['s'] ) ) : ?>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-students' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+					<button type="submit" class="sms-search-btn"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+					<?php if ( ! empty( $_GET['s'] ) || ! empty( $_GET['class_id'] ) ) : ?>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-students' ) ); ?>" class="sms-reset-btn"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
 					<?php endif; ?>
+					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-students&action=export_students&class_id=' . $selected_class ), 'sms_export_students_nonce' ) ); ?>" class="button button-primary" style="margin-left: 10px;">
+						<span class="dashicons dashicons-download" style="line-height: 1.3;"></span> <?php esc_html_e( 'Export CSV', 'school-management-system' ); ?>
+					</a>
 				</form>
 			</div>
 			<div class="sms-panel-body">
@@ -294,17 +337,28 @@ $pending_students = Student::count( array( 'status' => 'pending' ) );
 				<th><?php esc_html_e( 'Class Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Enrollment Date', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Address', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Parents Name', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Parents Phone', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
 			<?php
 			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			$class_filter = isset( $_GET['class_id'] ) ? intval( $_GET['class_id'] ) : 0;
 			
 			if ( ! empty( $search_term ) ) {
 				$students = Student::search( $search_term );
+				// Filter out non-active students from search results
+				$students = array_filter( $students, function( $student ) {
+					return 'active' === $student->status;
+				} );
+			} elseif ( $class_filter ) {
+				$students = Student::get_by_class( $class_filter );
 			} else {
-				$students = Student::get_all( array(), 50 );
+				$students = Student::get_all( array( 'status' => 'active' ), 50 );
 			}
 			
 			if ( ! empty( $students ) ) {
@@ -327,12 +381,12 @@ $pending_students = Student::count( array( 'status' => 'pending' ) );
 						<td><?php echo esc_html( $class_name ); ?></td>
 						<td><?php echo esc_html( $student->roll_number ?? '' ); ?></td>
 						<td><?php echo esc_html( $enrollment_date ? date( 'Y-m-d', strtotime( $enrollment_date ) ) : '' ); ?></td>
+						<td><?php echo esc_html( $student->status ); ?></td>
+						<td><?php echo esc_html( $student->address ); ?></td>
+						<td><?php echo esc_html( $student->parent_name ); ?></td>
+						<td><?php echo esc_html( $student->parent_phone ); ?></td>
 						<td>
 							<div class="sms-row-actions">
-								<button class="sms-row-action-btn details toggle-details-btn" data-target="#details-<?php echo intval( $student->id ); ?>">
-									<span class="dashicons dashicons-visibility"></span>
-									<?php esc_html_e( 'Details', 'school-management-system' ); ?>
-								</button>
 								<a class="sms-row-action-btn edit" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-students&action=edit&id=' . $student->id ) ); ?>">
 									<span class="dashicons dashicons-edit"></span>
 									<?php esc_html_e( 'Edit', 'school-management-system' ); ?>
@@ -344,26 +398,12 @@ $pending_students = Student::count( array( 'status' => 'pending' ) );
 							</div>
 						</td>
 					</tr>
-					<tr id="details-<?php echo intval( $student->id ); ?>" class="student-details-row" style="display: none;">
-						<td colspan="6">
-							<ul class="student-details-list">
-								<li><strong><?php esc_html_e( 'ID', 'school-management-system' ); ?>:</strong> <?php echo intval( $student->id ); ?></li>
-								<li><strong><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->roll_number ?? '' ); ?></li>
-								<li><strong><?php esc_html_e( 'Date of Birth', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->dob ); ?></li>
-								<li><strong><?php esc_html_e( 'Gender', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->gender ); ?></li>
-								<li><strong><?php esc_html_e( 'Address', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->address ); ?></li>
-								<li><strong><?php esc_html_e( 'Parent Name', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->parent_name ); ?></li>
-								<li><strong><?php esc_html_e( 'Parent Phone', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->parent_phone ); ?></li>
-								<li><strong><?php esc_html_e( 'Status', 'school-management-system' ); ?>:</strong> <?php echo esc_html( $student->status ); ?></li>
-							</ul>
-						</td>
-					</tr>
 					<?php
 				}
 			} else {
 				?>
 				<tr>
-					<td colspan="6"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
+					<td colspan="10"><?php esc_html_e( 'No students found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}

@@ -690,6 +690,7 @@ class Admin {
 				'status'     => ! empty( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : '',
 				'start_date' => ! empty( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '',
 				'end_date'   => ! empty( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '',
+				'exclude_fee_type' => 'Admission Fee',
 			);
 
 			$fees_report = Fee::get_fees_report( $filters );
@@ -736,7 +737,13 @@ class Admin {
 			$output = fopen( 'php://output', 'w' );
 			fputcsv( $output, array( 'First Name', 'Last Name', 'Class', 'Parent Phone', 'Email', 'Roll Number', 'DOB', 'Gender', 'Parent Name', 'Address', 'Status' ) );
 
-			$students = Student::get_all( array(), 10000 );
+			$class_id = isset( $_GET['class_id'] ) ? intval( $_GET['class_id'] ) : 0;
+			if ( $class_id ) {
+				$students = Student::get_by_class( $class_id );
+			} else {
+				$students = Student::get_all( array( 'status' => 'active' ), 10000 );
+			}
+
 			foreach ( $students as $student ) {
 				$class_name = '';
 				$enrollments = Enrollment::get_student_enrollments( $student->id );
@@ -1256,6 +1263,9 @@ class Admin {
 				'last_name'    => '', // Using first_name as full name in new form
 				'roll_number'  => sanitize_text_field( $_POST['roll_number'] ?? '' ),
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'active' ),
+				'address'      => sanitize_textarea_field( $_POST['address'] ?? '' ),
+				'parent_name'  => sanitize_text_field( $_POST['parent_name'] ?? '' ),
+				'parent_phone' => sanitize_text_field( $_POST['parent_phone'] ?? '' ),
 			);
 			$class_id = intval( $_POST['class_id'] ?? 0 );
 			$enrollment_date = sanitize_text_field( $_POST['enrollment_date'] ?? date( 'Y-m-d' ) );
@@ -1276,9 +1286,15 @@ class Admin {
 			// Add missing required fields for Student model
 			$student_data['dob'] = '2000-01-01';
 			$student_data['gender'] = 'Male';
-			$student_data['parent_name'] = 'Parent of ' . $student_data['first_name'];
-			$student_data['parent_phone'] = '1234567890';
-			$student_data['address'] = 'School Address';
+			if ( empty( $student_data['parent_name'] ) ) {
+				$student_data['parent_name'] = 'Parent of ' . $student_data['first_name'];
+			}
+			if ( empty( $student_data['parent_phone'] ) ) {
+				$student_data['parent_phone'] = '1234567890';
+			}
+			if ( empty( $student_data['address'] ) ) {
+				$student_data['address'] = 'School Address';
+			}
 			
 			if ( empty( $class_id ) ) {
 				$class_id = 1; // Default to first class if not selected
@@ -1312,6 +1328,10 @@ class Admin {
 					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( $student_id->get_error_message() ) ) );
 					exit;
 				}
+				if ( ! $student_id ) {
+					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( 'Failed to create student record.' ) ) );
+					exit;
+				}
 				$redirect_message = 'student_created_and_enrolled';
 			}
 
@@ -1324,8 +1344,12 @@ class Admin {
 					'status' => $student_data['status'],
 				) );
 
-				if ( is_wp_error( $enrollment_result ) && 'duplicate_enrollment' === $enrollment_result->get_error_code() ) {
-					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
+				if ( is_wp_error( $enrollment_result ) ) {
+					if ( 'duplicate_enrollment' === $enrollment_result->get_error_code() ) {
+						wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=student_already_enrolled' ) );
+					} else {
+						wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_error=' . urlencode( $enrollment_result->get_error_message() ) ) );
+					}
 				} else {
 					wp_redirect( admin_url( 'admin.php?page=sms-enrollments&sms_message=' . $redirect_message ) );
 				}

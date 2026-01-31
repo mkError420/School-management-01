@@ -45,7 +45,21 @@ class Student {
 			$student_data['status'] = 'active';
 		}
 
-		return Database::insert( 'students', $student_data );
+		$result = Database::insert( 'students', $student_data );
+		
+		if ( ! $result ) {
+			global $wpdb;
+			// Self-healing: If table doesn't exist, try to create it.
+			if ( strpos( $wpdb->last_error, "doesn't exist" ) !== false ) {
+				if ( ! class_exists( 'School_Management_System\\Activator' ) ) {
+					require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+				}
+				Activator::activate();
+				$result = Database::insert( 'students', $student_data );
+			}
+		}
+		
+		return $result;
 	}
 
 	/**
@@ -216,6 +230,28 @@ class Student {
 			$like_term,
 			$like_term,
 			$like_term
+		);
+
+		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Get students by class ID.
+	 *
+	 * @param int $class_id Class ID.
+	 * @return array Array of student objects.
+	 */
+	public static function get_by_class( $class_id ) {
+		global $wpdb;
+		$students_table = $wpdb->prefix . 'sms_students';
+		$enrollments_table = $wpdb->prefix . 'sms_enrollments';
+
+		$sql = $wpdb->prepare(
+			"SELECT DISTINCT s.* FROM $students_table s
+			INNER JOIN $enrollments_table e ON s.id = e.student_id
+			WHERE e.class_id = %d AND s.status = 'active'
+			ORDER BY s.first_name ASC",
+			$class_id
 		);
 
 		return $wpdb->get_results( $sql );

@@ -45,12 +45,69 @@ function sms_ajax_enroll_student() {
 		wp_send_json_error( __( 'Unauthorized', 'school-management-system' ) );
 	}
 
+	$enrollment_id = intval( $_POST['enrollment_id'] ?? 0 );
 	$student_id = intval( $_POST['student_id'] ?? 0 );
-	$class_id = intval( $_POST['class_id'] ?? 0 );
+	$class_id = isset( $_POST['class_id'] ) ? intval( $_POST['class_id'] ) : 0;
 	$subject_id = intval( $_POST['subject_id'] ?? 0 );
+	$enrollment_date = sanitize_text_field( $_POST['enrollment_date'] ?? '' );
+	$status = sanitize_text_field( $_POST['status'] ?? '' );
+	$admission_fee = isset( $_POST['admission_fee'] ) ? floatval( $_POST['admission_fee'] ) : 0;
 
-	if ( empty( $student_id ) || empty( $class_id ) ) {
-		wp_send_json_error( __( 'Missing required fields', 'school-management-system' ) );
+	$student_data = array(
+		'first_name'   => sanitize_text_field( $_POST['first_name'] ?? '' ),
+		'last_name'    => sanitize_text_field( $_POST['last_name'] ?? '' ),
+		'roll_number'  => sanitize_text_field( $_POST['roll_number'] ?? '' ),
+		'email'        => sanitize_email( $_POST['email'] ?? '' ),
+		'status'       => ! empty( $status ) ? $status : 'active',
+		'address'      => sanitize_textarea_field( $_POST['address'] ?? '' ),
+		'parent_name'  => sanitize_text_field( $_POST['parent_name'] ?? '' ),
+		'parent_phone' => sanitize_text_field( $_POST['parent_phone'] ?? '' ),
+	);
+
+	if ( empty( $student_id ) ) {
+
+		if ( empty( $student_data['first_name'] ) ) {
+			$student_data['first_name'] = 'Student';
+		}
+
+		if ( empty( $student_data['roll_number'] ) ) {
+			$student_data['roll_number'] = 'STU-' . date( 'Y' ) . '-' . str_pad( Student::count() + 1, 4, '0', STR_PAD_LEFT ) . '-' . rand( 100, 999 );
+		}
+		
+		if ( empty( $student_data['email'] ) ) {
+			$student_data['email'] = strtolower( preg_replace( '/[^a-z0-9]/i', '', $student_data['roll_number'] ) ) . '@school.local';
+		}
+
+		$student_data['dob'] = '2000-01-01';
+		$student_data['gender'] = 'Male';
+		if ( empty( $student_data['parent_name'] ) ) {
+			$student_data['parent_name'] = 'Parent of ' . $student_data['first_name'];
+		}
+		if ( empty( $student_data['parent_phone'] ) ) {
+			$student_data['parent_phone'] = '1234567890';
+		}
+		if ( empty( $student_data['address'] ) ) {
+			$student_data['address'] = 'School Address';
+		}
+
+		$new_student_id = Student::add( $student_data );
+		
+		if ( is_wp_error( $new_student_id ) ) {
+			wp_send_json_error( $new_student_id->get_error_message() );
+		}
+
+		if ( ! $new_student_id ) {
+			wp_send_json_error( __( 'Failed to create student record. Please check database logs.', 'school-management-system' ) );
+		}
+		
+		$student_id = $new_student_id;
+	} else {
+		// Update existing student data
+		Student::update( $student_id, $student_data );
+	}
+
+	if ( empty( $class_id ) ) {
+		wp_send_json_error( __( 'Class is required. Please select a class.', 'school-management-system' ) );
 	}
 
 	$enrollment_data = array(
@@ -61,11 +118,60 @@ function sms_ajax_enroll_student() {
 	if ( ! empty( $subject_id ) ) {
 		$enrollment_data['subject_id'] = $subject_id;
 	}
+	
+	if ( ! empty( $enrollment_date ) ) {
+		$enrollment_data['enrollment_date'] = $enrollment_date;
+	}
+	
+	if ( ! empty( $status ) ) {
+		$enrollment_data['status'] = $status;
+	}
 
-	$result = Enrollment::add( $enrollment_data );
+	if ( $enrollment_id > 0 ) {
+		$result = Enrollment::update( $enrollment_id, $enrollment_data );
+		$success_message = __( 'Enrollment updated successfully', 'school-management-system' );
+	} else {
+		$result = Enrollment::add( $enrollment_data );
+		$success_message = __( 'Student enrolled successfully', 'school-management-system' );
+	}
 
-	if ( $result ) {
-		wp_send_json_success( __( 'Student enrolled successfully', 'school-management-system' ) );
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( $result->get_error_message() );
+	} elseif ( $result !== false ) {
+		// Handle Admission Fee (Create or Update)
+		if ( isset( $_POST['admission_fee'] ) ) {
+			// Check for existing admission fee
+			$existing_fees = Fee::get_student_fees( $student_id );
+			$admission_fee_id = 0;
+			
+			if ( ! empty( $existing_fees ) ) {
+				foreach ( $existing_fees as $f ) {
+					if ( 'Admission Fee' === $f->fee_type && $f->class_id == $class_id ) {
+						$admission_fee_id = $f->id;
+						break;
+					}
+				}
+			}
+
+			$fee_data = array(
+				'student_id'   => $student_id,
+				'class_id'     => $class_id,
+				'fee_type'     => 'Admission Fee',
+				'amount'       => $admission_fee,
+				'status'       => $status === 'active' ? 'paid' : 'pending',
+				'due_date'     => $enrollment_date,
+				'paid_amount'  => $status === 'active' ? $admission_fee : 0,
+				'payment_date' => $status === 'active' ? $enrollment_date : null,
+			);
+
+			if ( $admission_fee_id > 0 ) {
+				Fee::update( $admission_fee_id, $fee_data );
+			} elseif ( $admission_fee > 0 ) {
+				Fee::add( $fee_data );
+			}
+		}
+
+		wp_send_json_success( $success_message );
 	} else {
 		wp_send_json_error( __( 'Failed to enroll student', 'school-management-system' ) );
 	}
@@ -604,10 +710,12 @@ function generate_voucher_html( $fee, $student, $class ) {
 							<span class="info-label"><?php esc_html_e( 'Fee Type:', 'school-management-system' ); ?></span>
 							<span class="info-value"><?php echo esc_html( $fee->fee_type ); ?></span>
 						</div>
+						<?php if ( 'Admission Fee' !== $fee->fee_type ) : ?>
 						<div class="info-row">
 							<span class="info-label"><?php esc_html_e( 'Due Date:', 'school-management-system' ); ?></span>
 							<span class="info-value"><?php echo esc_html( $fee->due_date ); ?></span>
 						</div>
+						<?php endif; ?>
 						<div class="info-row">
 							<span class="info-label"><?php esc_html_e( 'Payment Date:', 'school-management-system' ); ?></span>
 							<span class="info-value"><?php echo esc_html( $fee->payment_date ); ?></span>

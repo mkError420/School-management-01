@@ -204,27 +204,47 @@ class Fee {
 	/**
 	 * Get total collected amount (sum of paid_amount).
 	 *
+	 * @param array $filters Filter parameters.
 	 * @return float Total collected.
 	 */
-	public static function get_total_collected() {
+	public static function get_total_collected( $filters = array() ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'sms_fees';
-		$total = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name" );
+		
+		$where = '1=1';
+		if ( ! empty( $filters['exclude_fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type != %s", $filters['exclude_fee_type'] );
+		}
+		if ( ! empty( $filters['fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type = %s", $filters['fee_type'] );
+		}
+
+		$total = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name WHERE $where" );
 		return floatval( $total ?? 0 );
 	}
 
 	/**
 	 * Get total pending amount (sum of amount - paid_amount).
 	 *
+	 * @param array $filters Filter parameters.
 	 * @return float Total pending.
 	 */
-	public static function get_total_pending() {
+	public static function get_total_pending( $filters = array() ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'sms_fees';
+		
+		$where = '1=1';
+		if ( ! empty( $filters['exclude_fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type != %s", $filters['exclude_fee_type'] );
+		}
+		if ( ! empty( $filters['fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type = %s", $filters['fee_type'] );
+		}
+
 		// Calculate total amount minus total paid amount.
 		// We filter out records where amount is 0 to avoid issues, though not strictly necessary.
-		$total_amount = $wpdb->get_var( "SELECT SUM(amount) FROM $table_name" );
-		$total_paid   = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name" );
+		$total_amount = $wpdb->get_var( "SELECT SUM(amount) FROM $table_name WHERE $where" );
+		$total_paid   = $wpdb->get_var( "SELECT SUM(paid_amount) FROM $table_name WHERE $where" );
 		
 		return floatval( ($total_amount ?? 0) - ($total_paid ?? 0) );
 	}
@@ -250,14 +270,23 @@ class Fee {
 	 * Get recent payments.
 	 *
 	 * @param int $limit Number of records.
+	 * @param array $filters Filter parameters.
 	 * @return array Array of fee objects.
 	 */
-	public static function get_recent_payments( $limit = 5 ) {
+	public static function get_recent_payments( $limit = 5, $filters = array() ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'sms_fees';
 
-		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE status IN ('paid', 'partially_paid') AND payment_date IS NOT NULL ORDER BY payment_date DESC, id DESC LIMIT %d", $limit );
+		$where = "status IN ('paid', 'partially_paid') AND payment_date IS NOT NULL";
+		if ( ! empty( $filters['exclude_fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type != %s", $filters['exclude_fee_type'] );
+		}
+		if ( ! empty( $filters['fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND fee_type = %s", $filters['fee_type'] );
+		}
+
+		$sql = $wpdb->prepare( "SELECT * FROM $table_name WHERE $where ORDER BY payment_date DESC, id DESC LIMIT %d", $limit );
 
 		return $wpdb->get_results( $sql );
 	}
@@ -265,19 +294,28 @@ class Fee {
 	/**
 	 * Get collection summary (Class, Month, Year).
 	 *
+	 * @param array $filters Filter parameters.
 	 * @return array Collection summary data.
 	 */
-	public static function get_collection_summary() {
+	public static function get_collection_summary( $filters = array() ) {
 		global $wpdb;
 		$fees_table = $wpdb->prefix . 'sms_fees';
 		$classes_table = $wpdb->prefix . 'sms_classes';
+
+		$where = "f.paid_amount > 0";
+		if ( ! empty( $filters['exclude_fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND f.fee_type != %s", $filters['exclude_fee_type'] );
+		}
+		if ( ! empty( $filters['fee_type'] ) ) {
+			$where .= $wpdb->prepare( " AND f.fee_type = %s", $filters['fee_type'] );
+		}
 
 		// Class wise
 		$class_data = $wpdb->get_results(
 			"SELECT c.class_name, SUM(f.paid_amount) as total 
 			FROM $fees_table f 
 			LEFT JOIN $classes_table c ON f.class_id = c.id 
-			WHERE f.paid_amount > 0 
+			WHERE $where 
 			GROUP BY f.class_id 
 			ORDER BY total DESC LIMIT 5"
 		);
@@ -287,8 +325,8 @@ class Fee {
 		$month_data = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT MONTH(payment_date) as month, SUM(paid_amount) as total 
-				FROM $fees_table 
-				WHERE paid_amount > 0 AND YEAR(payment_date) = %d 
+				FROM $fees_table f
+				WHERE $where AND YEAR(payment_date) = %d 
 				GROUP BY MONTH(payment_date) 
 				ORDER BY month ASC",
 				$current_year
@@ -298,8 +336,8 @@ class Fee {
 		// Year wise
 		$year_data = $wpdb->get_results(
 			"SELECT YEAR(payment_date) as year, SUM(paid_amount) as total 
-			FROM $fees_table 
-			WHERE paid_amount > 0 
+			FROM $fees_table f
+			WHERE $where 
 			GROUP BY YEAR(payment_date) 
 			ORDER BY year DESC LIMIT 5"
 		);
@@ -346,6 +384,10 @@ class Fee {
 
 		if ( ! empty( $filters['end_date'] ) ) {
 			$sql .= $wpdb->prepare( " AND f.due_date <= %s", $filters['end_date'] );
+		}
+
+		if ( ! empty( $filters['exclude_fee_type'] ) ) {
+			$sql .= $wpdb->prepare( " AND f.fee_type != %s", $filters['exclude_fee_type'] );
 		}
 
 		$sql .= " ORDER BY f.due_date DESC, f.id DESC";

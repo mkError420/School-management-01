@@ -232,7 +232,7 @@ class Assets_Loader {
 			'sms-admin-script',
 			SMS_PLUGIN_URL . 'public/js/admin-script.js',
 			$script_dependencies,
-			SMS_VERSION,
+			SMS_VERSION . '.' . time(), // Force cache bust
 			true
 		);
 
@@ -246,6 +246,7 @@ class Assets_Loader {
 			array(
 				'ajaxurl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'sms_admin_nonce' ),
+				'voucher_nonce' => wp_create_nonce( 'sms_generate_voucher_nonce' ),
 			)
 		);
 	}

@@ -203,6 +203,36 @@ $inactive_teachers = Teacher::count( array( 'status' => 'inactive' ) );
  	border: 1px solid #dee2e6;
  	border-radius: 10px;
  }
+ .sms-search-btn {
+ 	background: #2c3e50;
+ 	color: #fff;
+ 	border: none;
+ 	padding: 10px 20px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	cursor: pointer;
+ 	transition: all 0.2s;
+ 	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+ }
+ .sms-search-btn:hover {
+ 	background: #1a252f;
+ 	transform: translateY(-1px);
+ 	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+ }
+ .sms-reset-btn {
+ 	background: #fff;
+ 	color: #e74c3c;
+ 	border: 1px solid #e74c3c;
+ 	padding: 9px 19px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	text-decoration: none;
+ 	transition: all 0.2s;
+ }
+ .sms-reset-btn:hover {
+ 	background: #e74c3c;
+ 	color: #fff;
+ }
 
  .sms-teachers-table-wrap {
  	overflow-x: auto;
@@ -477,9 +507,9 @@ $inactive_teachers = Teacher::count( array( 'status' => 'inactive' ) );
 			<form method="get" action="" class="sms-teachers-search">
 				<input type="hidden" name="page" value="sms-teachers" />
 				<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by name, email, or ID...', 'school-management-system' ); ?>" />
-				<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+				<button type="submit" class="sms-search-btn"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
 				<?php if ( ! empty( $_GET['s'] ) ) : ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-teachers' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-teachers' ) ); ?>" class="sms-reset-btn"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
 				<?php endif; ?>
 			</form>
 		</div>

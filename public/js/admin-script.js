@@ -42,6 +42,65 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
+	// Enroll student via AJAX
+	$('#sms-enroll-student-form').on('submit', function (e) {
+		e.preventDefault();
+
+		var $form = $(this);
+		var $btn = $form.find('button[type="submit"]');
+		var originalText = $btn.html();
+
+		$btn.prop('disabled', true).text('Processing...');
+
+		// Get class ID specifically
+		var classId = $('#class_id').val();
+
+		var formData = {
+			action: 'sms_enroll_student',
+			nonce: smsAdmin.nonce,
+			enrollment_id: $('#enrollment_id').val(),
+			student_id: $('#student_id').val(),
+			first_name: $('#first_name').val(),
+			class_id: classId,
+			roll_number: $('#roll_number').val(),
+			enrollment_date: $('#enrollment_date').val(),
+			status: $('#status').val(),
+			address: $('#address').val(),
+			parent_name: $('#parent_name').val(),
+			parent_phone: $('#parent_phone').val(),
+			admission_fee: $('#admission_fee').val()
+		};
+
+		if (!formData.class_id) {
+			$btn.prop('disabled', false).html(originalText);
+			alert('Please select a class.');
+			return;
+		}
+
+		$.ajax({
+			url: smsAdmin.ajaxurl,
+			type: 'POST',
+			data: formData,
+			success: function (response) {
+				$btn.prop('disabled', false).html(originalText);
+				if (response.success) {
+					alert(response.data);
+					if ($('#enrollment_id').val()) {
+						window.location.href = 'admin.php?page=sms-enrollments';
+					} else {
+						location.reload();
+					}
+				} else {
+					alert('Error: ' + response.data);
+				}
+			},
+			error: function () {
+				$btn.prop('disabled', false).html(originalText);
+				alert('Failed to enroll student');
+			}
+		});
+	});
+
 	// Search functionality
 	$('.sms-search-form').on('submit', function (e) {
 		e.preventDefault();
@@ -144,4 +203,76 @@ jQuery(document).ready(function ($) {
 		var isChecked = $(this).prop('checked');
 		$('input[name="enrollment_ids[]"]').prop('checked', isChecked);
 	});
+
+	// Handle voucher download (Global)
+	$(document).on('click', '.sms-voucher-btn', function(e) {
+		e.preventDefault();
+		
+		var $button = $(this);
+		var feeId = $button.data('fee-id');
+		var originalHtml = $button.html();
+		
+		// Show loading state
+		$button.prop('disabled', true);
+		$button.html('<span class="dashicons dashicons-update spin"></span>');
+		
+		// Prepare AJAX data
+		var ajaxData = {
+			action: 'sms_generate_voucher',
+			fee_id: feeId,
+			nonce: smsAdmin.voucher_nonce
+		};
+		
+		$.ajax({
+			url: smsAdmin.ajaxurl,
+			type: 'POST',
+			data: ajaxData,
+			success: function(response) {
+				if (response && response.success) {
+					// Create download link
+					var downloadLink = document.createElement('a');
+					downloadLink.href = response.data.url;
+					downloadLink.download = response.data.filename;
+					downloadLink.target = '_blank';
+					
+					document.body.appendChild(downloadLink);
+					downloadLink.click();
+					document.body.removeChild(downloadLink);
+					
+					$button.html('<span class="dashicons dashicons-yes-alt"></span>');
+					
+					setTimeout(function() {
+						$button.html(originalHtml);
+						$button.prop('disabled', false);
+					}, 2000);
+				} else {
+					var errorMsg = response && response.data ? response.data.message : 'Failed to generate voucher.';
+					alert(errorMsg);
+					$button.html('<span class="dashicons dashicons-warning"></span>');
+					
+					setTimeout(function() {
+						$button.html(originalHtml);
+						$button.prop('disabled', false);
+					}, 2000);
+				}
+			},
+			error: function(xhr, status, error) {
+				alert('Network error occurred: ' + error);
+				$button.html('<span class="dashicons dashicons-warning"></span>');
+				
+				setTimeout(function() {
+					$button.html(originalHtml);
+					$button.prop('disabled', false);
+				}, 2000);
+			}
+		});
+	});
+
+	// Add spin animation style if not exists
+	if ($('#sms-spin-style').length === 0) {
+		$('<style id="sms-spin-style">')
+			.prop('type', 'text/css')
+			.html('.spin { animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }')
+			.appendTo('head');
+	}
 });

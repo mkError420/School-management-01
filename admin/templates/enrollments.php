@@ -8,6 +8,7 @@
 use School_Management_System\Enrollment;
 use School_Management_System\Student;
 use School_Management_System\Classm;
+use School_Management_System\Fee;
 
 if ( ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
@@ -42,7 +43,32 @@ if ( isset( $_GET['sms_error'] ) ) {
 $total_enrollments = Enrollment::count();
 $active_enrollments = Enrollment::count( array( 'status' => 'active' ) );
 $pending_enrollments = Enrollment::count( array( 'status' => 'pending' ) );
+$inactive_enrollments = Enrollment::count( array( 'status' => 'inactive' ) );
 $students_count = Student::count();
+
+// Handle Edit Mode
+$enrollment_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
+$action = isset( $_GET['action'] ) ? sanitize_text_field( $_GET['action'] ) : '';
+$edit_enrollment = null;
+$edit_student = null;
+$edit_fee = null;
+
+if ( 'edit' === $action && $enrollment_id ) {
+	$edit_enrollment = Enrollment::get( $enrollment_id );
+	if ( $edit_enrollment ) {
+		$edit_student = Student::get( $edit_enrollment->student_id );
+		// Try to find associated admission fee
+		$fees = Fee::get_student_fees( $edit_enrollment->student_id );
+		if ( ! empty( $fees ) ) {
+			foreach ( $fees as $f ) {
+				if ( 'Admission Fee' === $f->fee_type && $f->class_id == $edit_enrollment->class_id ) {
+					$edit_fee = $f;
+					break;
+				}
+			}
+		}
+	}
+}
 
 ?>
 <style>
@@ -79,7 +105,7 @@ $students_count = Student::count();
 
  .sms-enrollment-stats {
  	display: grid;
- 	grid-template-columns: repeat(4, minmax(0, 1fr));
+ 	grid-template-columns: repeat(5, minmax(0, 1fr));
  	gap: 16px;
  	margin-bottom: 18px;
  }
@@ -138,6 +164,36 @@ $students_count = Student::count();
  	margin: 0;
  }
  .sms-enrollments-search input[type="search"] { min-width: 260px; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 10px; }
+ .sms-search-btn {
+ 	background: #2c3e50;
+ 	color: #fff;
+ 	border: none;
+ 	padding: 10px 20px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	cursor: pointer;
+ 	transition: all 0.2s;
+ 	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+ }
+ .sms-search-btn:hover {
+ 	background: #1a252f;
+ 	transform: translateY(-1px);
+ 	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+ }
+ .sms-reset-btn {
+ 	background: #fff;
+ 	color: #e74c3c;
+ 	border: 1px solid #e74c3c;
+ 	padding: 9px 19px;
+ 	border-radius: 8px;
+ 	font-weight: 600;
+ 	text-decoration: none;
+ 	transition: all 0.2s;
+ }
+ .sms-reset-btn:hover {
+ 	background: #e74c3c;
+ 	color: #fff;
+ }
  .sms-enrollments-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
  .sms-status-pill {
@@ -254,6 +310,27 @@ $students_count = Student::count();
 		<div class="notice notice-error is-dismissible"><p><?php echo esc_html( $error_message ); ?></p></div>
 	<?php endif; ?>
 
+		<!-- Admission Fee Dashboard -->
+		<div class="sms-dashboard-wrapper" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px;">
+			<?php
+			$currency = get_option( 'sms_settings' )['currency'] ?? '৳';
+			?>
+			<div class="sms-stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 12px; padding: 25px; color: #fff; position: relative; overflow: hidden;">
+				<span class="dashicons dashicons-money-alt" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 80px; width: 80px; height: 80px; opacity: 0.15;"></span>
+				<h3 style="margin: 0 0 10px; font-size: 15px; font-weight: 600; text-transform: uppercase; color: rgba(255,255,255,0.9);"><?php esc_html_e( 'Admission Fees Collected', 'school-management-system' ); ?></h3>
+				<p class="value" style="font-size: 36px; font-weight: 700; margin: 0; line-height: 1.2;">
+					<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_collected( array( 'fee_type' => 'Admission Fee' ) ), 2 ); ?>
+				</p>
+			</div>
+			<div class="sms-stat-card" style="background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); border-radius: 12px; padding: 25px; color: #fff; position: relative; overflow: hidden;">
+				<span class="dashicons dashicons-warning" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 80px; width: 80px; height: 80px; opacity: 0.15;"></span>
+				<h3 style="margin: 0 0 10px; font-size: 15px; font-weight: 600; text-transform: uppercase; color: rgba(255,255,255,0.9);"><?php esc_html_e( 'Pending Admission Fees', 'school-management-system' ); ?></h3>
+				<p class="value" style="font-size: 36px; font-weight: 700; margin: 0; line-height: 1.2;">
+					<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_pending( array( 'fee_type' => 'Admission Fee' ) ), 2 ); ?>
+				</p>
+			</div>
+		</div>
+
 		<div class="sms-enrollment-stats">
 			<div class="sms-enrollment-stat">
 				<div class="sms-enrollment-stat-icon total"><span class="dashicons dashicons-groups"></span></div>
@@ -277,6 +354,13 @@ $students_count = Student::count();
 				</div>
 			</div>
 			<div class="sms-enrollment-stat">
+				<div class="sms-enrollment-stat-icon inactive"><span class="dashicons dashicons-minus"></span></div>
+				<div>
+					<div class="sms-enrollment-stat-number"><?php echo intval( $inactive_enrollments ); ?></div>
+					<div class="sms-enrollment-stat-label"><?php esc_html_e( 'Inactive', 'school-management-system' ); ?></div>
+				</div>
+			</div>
+			<div class="sms-enrollment-stat">
 				<div class="sms-enrollment-stat-icon students"><span class="dashicons dashicons-user"></span></div>
 				<div>
 					<div class="sms-enrollment-stat-number"><?php echo intval( $students_count ); ?></div>
@@ -288,30 +372,32 @@ $students_count = Student::count();
 	<!-- Add/Edit Form -->
 		<div class="sms-panel" id="sms-enrollment-form">
 			<div class="sms-panel-header">
-				<h2><?php esc_html_e( 'Enroll New Student', 'school-management-system' ); ?></h2>
+				<h2><?php echo $edit_enrollment ? esc_html__( 'Edit Enrollment', 'school-management-system' ) : esc_html__( 'Enroll New Student', 'school-management-system' ); ?></h2>
 				<div class="sms-enrollments-subtitle" style="opacity: 0.8; font-size: 12px; margin: 0;"><?php esc_html_e( 'Fill in student details and assign to class. Student will be automatically added to Students list.', 'school-management-system' ); ?></div>
 			</div>
 			<div class="sms-panel-body">
 				<!-- New Student Form -->
-				<form method="post" action="">
+				<form method="post" action="" id="sms-enroll-student-form">
 					<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
+					<input type="hidden" name="enrollment_id" id="enrollment_id" value="<?php echo $edit_enrollment ? intval( $edit_enrollment->id ) : ''; ?>">
+					<input type="hidden" name="student_id" id="student_id" value="<?php echo $edit_student ? intval( $edit_student->id ) : ''; ?>">
 					<div class="sms-form-grid">
 							<div class="sms-form-field">
 								<label class="sms-form-label" for="first_name"><?php esc_html_e( 'Student Name', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<input type="text" name="first_name" id="first_name" placeholder="<?php esc_attr_e( 'Enter student full name', 'school-management-system' ); ?>" />
+									<input type="text" name="first_name" id="first_name" value="<?php echo $edit_student ? esc_attr( $edit_student->first_name . ($edit_student->last_name ? ' ' . $edit_student->last_name : '') ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter student full name', 'school-management-system' ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
 								<label class="sms-form-label" for="class_id"><?php esc_html_e( 'Class Name', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<select name="class_id" id="class_id">
+									<select name="class_id" id="class_id" required>
 										<option value=""><?php esc_html_e( 'Select Class', 'school-management-system' ); ?></option>
 										<?php
 										$classes = Classm::get_all( array(), 100 );
 										foreach ( $classes as $class ) {
 											?>
-											<option value="<?php echo intval( $class->id ); ?>">
+											<option value="<?php echo intval( $class->id ); ?>" <?php echo $edit_enrollment && $edit_enrollment->class_id == $class->id ? 'selected' : ''; ?>>
 												<?php echo esc_html( $class->class_name ); ?>
 											</option>
 											<?php
@@ -323,30 +409,59 @@ $students_count = Student::count();
 							<div class="sms-form-field">
 								<label class="sms-form-label" for="roll_number"><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<input type="text" name="roll_number" id="roll_number" placeholder="<?php esc_attr_e( 'Auto-generated if empty', 'school-management-system' ); ?>" />
+									<input type="text" name="roll_number" id="roll_number" value="<?php echo $edit_student ? esc_attr( $edit_student->roll_number ) : ''; ?>" placeholder="<?php esc_attr_e( 'Auto-generated if empty', 'school-management-system' ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
 								<label class="sms-form-label" for="enrollment_date"><?php esc_html_e( 'Enrollment Date', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
-									<input type="date" name="enrollment_date" id="enrollment_date" value="<?php echo esc_attr( date( 'Y-m-d' ) ); ?>" />
+									<input type="date" name="enrollment_date" id="enrollment_date" value="<?php echo $edit_enrollment ? esc_attr( $edit_enrollment->enrollment_date ) : esc_attr( date( 'Y-m-d' ) ); ?>" />
 								</div>
 							</div>
 							<div class="sms-form-field">
-								<label class="sms-form-label" for="status"><?php esc_html_e( 'Status', 'school-management-system' ); ?></label>
+								<label class="sms-form-label" for="status"><?php esc_html_e( 'Status / Payment', 'school-management-system' ); ?></label>
 								<div class="sms-form-control">
 									<select name="status" id="status">
-										<option value="active"><?php esc_html_e( 'Active', 'school-management-system' ); ?></option>
-										<option value="pending"><?php esc_html_e( 'Pending', 'school-management-system' ); ?></option>
+										<option value="active" <?php echo $edit_enrollment && 'active' === $edit_enrollment->status ? 'selected' : ''; ?>><?php esc_html_e( 'Paid (Active)', 'school-management-system' ); ?></option>
+										<option value="pending" <?php echo $edit_enrollment && 'pending' === $edit_enrollment->status ? 'selected' : ''; ?>><?php esc_html_e( 'Unpaid (Pending)', 'school-management-system' ); ?></option>
 									</select>
+								</div>
+							</div>
+							<div class="sms-form-field">
+								<label class="sms-form-label" for="address"><?php esc_html_e( 'Address', 'school-management-system' ); ?></label>
+								<div class="sms-form-control">
+									<input type="text" name="address" id="address" value="<?php echo $edit_student ? esc_attr( $edit_student->address ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter address', 'school-management-system' ); ?>" />
+								</div>
+							</div>
+							<div class="sms-form-field">
+								<label class="sms-form-label" for="parent_name"><?php esc_html_e( 'Parents Name', 'school-management-system' ); ?></label>
+								<div class="sms-form-control">
+									<input type="text" name="parent_name" id="parent_name" value="<?php echo $edit_student ? esc_attr( $edit_student->parent_name ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter parents name', 'school-management-system' ); ?>" />
+								</div>
+							</div>
+							<div class="sms-form-field">
+								<label class="sms-form-label" for="parent_phone"><?php esc_html_e( 'Parents Phone Number', 'school-management-system' ); ?></label>
+								<div class="sms-form-control">
+									<input type="text" name="parent_phone" id="parent_phone" value="<?php echo $edit_student ? esc_attr( $edit_student->parent_phone ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter parents phone', 'school-management-system' ); ?>" />
+								</div>
+							</div>
+							<div class="sms-form-field">
+								<label class="sms-form-label" for="admission_fee"><?php esc_html_e( 'Admission Fee', 'school-management-system' ); ?></label>
+								<div class="sms-form-control">
+									<input type="number" name="admission_fee" id="admission_fee" value="<?php echo $edit_fee ? esc_attr( $edit_fee->amount ) : ''; ?>" placeholder="<?php esc_attr_e( 'Enter amount', 'school-management-system' ); ?>" step="0.01" />
 								</div>
 							</div>
 						</div>
 						<div class="sms-form-actions">
 							<button type="submit" name="sms_enroll_new_student" class="sms-btn sms-btn-primary">
-								<span class="dashicons dashicons-plus-alt"></span>
-								<?php esc_html_e( 'Enroll Student', 'school-management-system' ); ?>
+								<span class="dashicons dashicons-<?php echo $edit_enrollment ? 'update' : 'plus-alt'; ?>"></span>
+								<?php echo $edit_enrollment ? esc_html__( 'Update Enrollment', 'school-management-system' ) : esc_html__( 'Enroll Student', 'school-management-system' ); ?>
 							</button>
+							<?php if ( $edit_enrollment ) : ?>
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments' ) ); ?>" class="sms-btn sms-btn-secondary">
+									<?php esc_html_e( 'Cancel', 'school-management-system' ); ?>
+								</a>
+							<?php endif; ?>
 						</div>
 					</form>
 			</div>
@@ -356,12 +471,16 @@ $students_count = Student::count();
 		<div class="sms-panel">
 			<div class="sms-panel-header">
 				<h2><?php esc_html_e( 'Enrollments List', 'school-management-system' ); ?></h2>
+				<a class="sms-cta-btn" href="#sms-enrollment-form" style="font-size: 12px; padding: 6px 12px; margin-right: auto; margin-left: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);">
+					<span class="dashicons dashicons-plus-alt"></span>
+					<?php esc_html_e( 'Enroll Student', 'school-management-system' ); ?>
+				</a>
 				<form method="get" action="" class="sms-enrollments-search">
 					<input type="hidden" name="page" value="sms-enrollments" />
 					<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by student or class...', 'school-management-system' ); ?>" />
-					<button type="submit" class="button"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
+					<button type="submit" class="sms-search-btn"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
 					<?php if ( ! empty( $_GET['s'] ) ) : ?>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments' ) ); ?>" class="sms-reset-btn"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
 					<?php endif; ?>
 				</form>
 			</div>
@@ -387,6 +506,11 @@ $students_count = Student::count();
 				<th><?php esc_html_e( 'Class Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Roll Number', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Enrollment Date', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Address', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Parents Name', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Parents Phone', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Payment Details', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
 		</thead>
@@ -412,8 +536,44 @@ $students_count = Student::count();
 						<td><?php echo $class ? esc_html( $class->class_name ) : 'N/A'; ?></td>
 						<td><?php echo $student ? esc_html( $student->roll_number ) : 'N/A'; ?></td>
 						<td><?php echo esc_html( $enrollment->enrollment_date ); ?></td>
+						<td><?php echo esc_html( $enrollment->status ); ?></td>
+						<td><?php echo $student ? esc_html( $student->address ) : 'N/A'; ?></td>
+						<td><?php echo $student ? esc_html( $student->parent_name ) : 'N/A'; ?></td>
+						<td><?php echo $student ? esc_html( $student->parent_phone ) : 'N/A'; ?></td>
+						<td>
+							<?php
+							$fees = Fee::get_student_fees( $enrollment->student_id );
+							$admission_fee = null;
+							if ( ! empty( $fees ) ) {
+								foreach ( $fees as $f ) {
+									if ( 'Admission Fee' === $f->fee_type && $f->class_id == $enrollment->class_id ) {
+										$admission_fee = $f;
+										break;
+									}
+								}
+							}
+							
+							if ( $admission_fee ) {
+								$currency = get_option( 'sms_settings' )['currency'] ?? '৳';
+								echo '<div style="font-weight:bold;">' . esc_html( $currency . ' ' . number_format( $admission_fee->amount, 2 ) ) . '</div>';
+								
+								$status_class = 'paid' === $admission_fee->status ? 'active' : 'pending';
+								echo '<span class="sms-status-pill ' . esc_attr( $status_class ) . '" style="font-size:10px; padding:2px 6px;">' . esc_html( ucfirst( $admission_fee->status ) ) . '</span>';
+								
+								if ( 'paid' === $admission_fee->status ) {
+									echo '<button type="button" class="button button-small sms-voucher-btn" data-fee-id="' . intval( $admission_fee->id ) . '" title="' . esc_attr__( 'Download Voucher', 'school-management-system' ) . '" style="margin-left:5px; vertical-align: middle;"><span class="dashicons dashicons-download" style="font-size:14px; line-height:1.5;"></span></button>';
+								}
+							} else {
+								echo '<span style="color:#999;">-</span>';
+							}
+							?>
+						</td>
 						<td>
 							<div class="sms-row-actions">
+								<a class="sms-row-action-btn edit" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments&action=edit&id=' . $enrollment->id ) ); ?>">
+									<span class="dashicons dashicons-edit"></span>
+									<?php esc_html_e( 'Edit', 'school-management-system' ); ?>
+								</a>
 								<a class="sms-row-action-btn delete" href="<?php echo esc_url( $delete_url ); ?>" onclick="return confirm('<?php esc_attr_e( 'Are you sure?', 'school-management-system' ); ?>')">
 									<span class="dashicons dashicons-trash"></span>
 									<?php esc_html_e( 'Delete', 'school-management-system' ); ?>

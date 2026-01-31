@@ -1172,14 +1172,14 @@ if ( isset( $_GET['sms_message'] ) ) {
 			<span class="dashicons dashicons-money-alt"></span>
 			<h3><?php esc_html_e( 'Total Fees Collected', 'school-management-system' ); ?></h3>
 			<p class="value">
-				<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_collected(), 2 ); ?>
+				<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_collected( array( 'exclude_fee_type' => 'Admission Fee' ) ), 2 ); ?>
 			</p>
 		</div>
 		<div class="sms-stat-card pending">
 			<span class="dashicons dashicons-warning"></span>
 			<h3 style="margin-top: 0;"><?php esc_html_e( 'Pending Fees', 'school-management-system' ); ?></h3>
 			<p class="value">
-				<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_pending(), 2 ); ?>
+				<?php echo esc_html( $currency ) . ' ' . number_format( Fee::get_total_pending( array( 'exclude_fee_type' => 'Admission Fee' ) ), 2 ); ?>
 			</p>
 		</div>
 	</div>
@@ -1196,7 +1196,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 			</div>
 			<div class="sms-widget-content">
 				<?php
-				$collection_data = Fee::get_collection_summary();
+				$collection_data = Fee::get_collection_summary( array( 'exclude_fee_type' => 'Admission Fee' ) );
 				?>
 				
 				<!-- Class Wise -->
@@ -1265,7 +1265,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 			</div>
 			<div class="sms-widget-content">
 				<?php
-				$recent_payments = Fee::get_recent_payments( 5 );
+				$recent_payments = Fee::get_recent_payments( 5, array( 'exclude_fee_type' => 'Admission Fee' ) );
 				if ( ! empty( $recent_payments ) ) {
 					foreach ( $recent_payments as $fee ) {
 						$student = Student::get( $fee->student_id );
@@ -1310,6 +1310,7 @@ if ( isset( $_GET['sms_message'] ) ) {
 				'status'     => $report_status,
 				'start_date' => $report_start_date,
 				'end_date'   => $report_end_date,
+				'exclude_fee_type' => 'Admission Fee',
 			);
 			$fees_report = Fee::get_fees_report( $report_filters );
 			
@@ -1775,153 +1776,6 @@ if ( isset( $_GET['sms_message'] ) ) {
 		$('<style>')
 			.prop('type', 'text/css')
 			.html('.pulse { animation: pulse 1s infinite; } @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }')
-			.appendTo('head');
-
-		// Handle voucher download
-		$('.sms-voucher-btn').on('click', function(e) {
-			e.preventDefault(); // Prevent any default behavior
-			
-			var $button = $(this);
-			var feeId = $button.data('fee-id');
-			
-			console.log('Voucher button clicked for fee ID:', feeId);
-			
-			// Show loading state
-			$button.prop('disabled', true);
-			$button.html('<span class="dashicons dashicons-update spin"></span> <?php esc_html_e( 'Generating...', 'school-management-system' ); ?>');
-			
-			// Create nonce for security
-			var nonce = '<?php echo wp_create_nonce( 'sms_generate_voucher_nonce' ); ?>';
-			console.log('Nonce created:', nonce);
-			
-			// Debug: Check if ajaxurl is available
-			if (typeof ajaxurl === 'undefined') {
-				ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-				console.log('AJAX URL set to:', ajaxurl);
-			}
-			
-			// Prepare AJAX data
-			var ajaxData = {
-				action: 'sms_generate_voucher',
-				fee_id: feeId,
-				nonce: nonce
-			};
-			
-			console.log('Sending AJAX request:', ajaxData);
-			
-			// Make AJAX request to generate voucher
-			$.ajax({
-				url: ajaxurl,
-				type: 'POST',
-				data: ajaxData,
-				timeout: 30000, // 30 second timeout
-				beforeSend: function(xhr) {
-					xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-					console.log('AJAX request about to send');
-				},
-				success: function(response) {
-					console.log('AJAX Response received:', response);
-					
-					if (response && response.success) {
-						console.log('Success response:', response.data);
-						
-						// Create download link
-						var downloadLink = document.createElement('a');
-						downloadLink.href = response.data.url;
-						downloadLink.download = response.data.filename;
-						downloadLink.target = '_blank'; // Open in new tab as fallback
-						
-						console.log('Download link created:', {
-							href: downloadLink.href,
-							download: downloadLink.download
-						});
-						
-						// Add to DOM, click, and remove
-						document.body.appendChild(downloadLink);
-						downloadLink.click();
-						document.body.removeChild(downloadLink);
-						
-						// Show success message with appropriate text
-						var successText = '<?php esc_html_e( 'Downloaded', 'school-management-system' ); ?>';
-						if (response.data.type === 'html') {
-							successText = '<?php esc_html_e( 'HTML Downloaded', 'school-management-system' ); ?>';
-						}
-						
-						$button.html('<span class="dashicons dashicons-yes-alt"></span> ' + successText);
-						
-						// Show additional message if provided
-						if (response.data.message) {
-							console.log('Additional message:', response.data.message);
-							// Create a temporary notice
-							var notice = $('<div class="notice notice-success is-dismissible" style="margin-top: 10px;"><p>' + response.data.message + '</p></div>');
-							$button.closest('tr').after(notice);
-							
-							// Auto-remove after 5 seconds
-							setTimeout(function() {
-								notice.fadeOut(function() {
-									notice.remove();
-								});
-							}, 5000);
-						}
-						
-						setTimeout(function() {
-							$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
-							$button.prop('disabled', false);
-						}, 2000);
-					} else {
-						console.error('Server returned error:', response);
-						// Show error
-						$button.html('<span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'Error', 'school-management-system' ); ?>');
-						var errorMsg = response && response.data ? response.data.message : '<?php esc_html_e( 'Failed to generate voucher. Please try again.', 'school-management-system' ); ?>';
-						console.error('Server Error:', errorMsg);
-						alert(errorMsg);
-						
-						setTimeout(function() {
-							$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
-							$button.prop('disabled', false);
-						}, 2000);
-					}
-				},
-				error: function(xhr, status, error) {
-					console.error('AJAX Error Details:', {
-						status: status,
-						error: error,
-						responseText: xhr.responseText,
-						statusCode: xhr.status,
-						readyState: xhr.readyState
-					});
-					
-					// Show detailed error information
-					var errorMsg = '<?php esc_html_e( 'Network error occurred', 'school-management-system' ); ?>';
-					
-					if (xhr.status === 0) {
-						errorMsg = '<?php esc_html_e( 'Network connection failed. Please check your internet connection.', 'school-management-system' ); ?>';
-					} else if (xhr.status === 403) {
-						errorMsg = '<?php esc_html_e( 'Permission denied. You may not have sufficient privileges.', 'school-management-system' ); ?>';
-					} else if (xhr.status === 404) {
-						errorMsg = '<?php esc_html_e( 'Service not found. The voucher generation service may be unavailable.', 'school-management-system' ); ?>';
-					} else if (xhr.status === 500) {
-						errorMsg = '<?php esc_html_e( 'Server error occurred. Please try again later.', 'school-management-system' ); ?>';
-						console.log('Server response text:', xhr.responseText);
-					} else if (status === 'timeout') {
-						errorMsg = '<?php esc_html_e( 'Request timed out. Please try again.', 'school-management-system' ); ?>';
-					}
-					
-					$button.html('<span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'Error', 'school-management-system' ); ?>');
-					alert(errorMsg + '\n\n<?php esc_html_e( 'Technical details:', 'school-management-system' ); ?> ' + status + ' - ' + error + ' (Status: ' + xhr.status + ')');
-					
-					setTimeout(function() {
-						$button.html('<span class="dashicons dashicons-media-document"></span> <?php esc_html_e( 'Voucher', 'school-management-system' ); ?>');
-						$button.prop('disabled', false);
-					}, 2000);
-				}
-			});
-		});
-
-		// Add spin animation for loading state
-		$('<style>')
-			.prop('type', 'text/css')
-			.html('.spin { animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }')
 			.appendTo('head');
 
 		// Debug voucher functionality
