@@ -351,6 +351,9 @@ if ( isset( $_GET['sms_message'] ) ) {
 	font-weight: 700;
 	color: #2c3e50;
 	margin-bottom: 4px;
+	line-height: 1.1;
+	word-break: break-word;
+	overflow-wrap: anywhere;
 }
 
 .sms-stat-label {
@@ -654,6 +657,52 @@ if ( isset( $_GET['sms_message'] ) ) {
 	vertical-align: middle;
 }
 
+.sms-action-buttons {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sms-action-icon-btn {
+	background: #ffffff;
+	border: 1px solid #dee2e6;
+	color: #2c3e50;
+	padding: 6px 10px;
+	border-radius: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.sms-action-icon-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+.sms-action-icon-btn.sms-edit-fee {
+	border-color: rgba(102, 126, 234, 0.4);
+	color: #4b5bdc;
+}
+
+.sms-action-icon-btn.sms-edit-fee:hover {
+	background: rgba(102, 126, 234, 0.08);
+}
+
+.sms-action-icon-btn.sms-delete-fee {
+	border-color: rgba(220, 53, 69, 0.35);
+	color: #dc3545;
+}
+
+.sms-action-icon-btn.sms-delete-fee:hover {
+	background: rgba(220, 53, 69, 0.08);
+}
+
 .sms-voucher-btn {
 	background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 	border: none;
@@ -763,17 +812,102 @@ if ( isset( $_GET['sms_message'] ) ) {
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+	.sms-filter-header {
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	/* Prevent orphan card layout on tablets (e.g. 1024px with WP sidebar) */
+	.sms-stats-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-auto-flow: dense;
+	}
+
+	.sms-stat-number {
+		font-size: 24px;
+	}
+
+	.sms-table-header {
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+}
+
 @media (max-width: 768px) {
+	.sms-filter-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.sms-filter-actions {
+		width: 100%;
+	}
+
+	.sms-filter-actions .sms-toggle-filters {
+		width: 100%;
+		justify-content: center;
+		display: inline-flex;
+	}
+
+	.sms-filter-content {
+		padding: 18px;
+	}
+
 	.sms-filter-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.sms-date-range {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.sms-date-separator {
+		display: none;
 	}
 	
 	.sms-stats-grid {
 		grid-template-columns: 1fr;
 	}
+
+	.sms-stat-card {
+		padding: 18px;
+	}
+
+	.sms-stat-card {
+		flex-direction: row;
+		align-items: center;
+		gap: 14px;
+	}
+
+	.sms-table-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.sms-record-count {
+		align-self: flex-start;
+	}
+
+	.sms-table-wrapper {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.sms-enhanced-table {
+		min-width: 920px;
+	}
 	
 	.sms-filter-buttons {
 		flex-direction: column;
+	}
+
+	.sms-filter-buttons .sms-generate-btn,
+	.sms-filter-buttons .sms-export-btn {
+		width: 100%;
+		justify-content: center;
 	}
 	
 	.sms-enhanced-table {
@@ -794,6 +928,55 @@ if ( isset( $_GET['sms_message'] ) ) {
 		font-size: 16px;
 		width: 16px;
 		height: 16px;
+	}
+}
+
+@media (max-width: 600px) {
+	.sms-stat-card {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.sms-student-cell {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.sms-actions-cell {
+		text-align: left;
+	}
+
+	.sms-action-buttons {
+		justify-content: flex-start;
+	}
+}
+
+@media (max-width: 480px) {
+	.sms-filter-header {
+		padding: 16px;
+	}
+
+	.sms-filter-content {
+		padding: 14px;
+	}
+
+	.sms-filter-grid {
+		gap: 14px;
+	}
+
+	.sms-stat-card {
+		padding: 16px;
+		border-radius: 14px;
+	}
+
+	.sms-enhanced-table thead th,
+	.sms-enhanced-table tbody td {
+		padding: 9px 8px;
+	}
+
+	.sms-voucher-btn {
+		padding: 8px 12px;
 	}
 }
 </style>
@@ -1431,16 +1614,26 @@ if ( isset( $_GET['sms_message'] ) ) {
 												</div>
 											</td>
 											<td class="sms-actions-cell">
-												<?php if ( in_array( $fee->status, array( 'paid', 'partially_paid' ) ) ) : ?>
-													<button type="button" class="button sms-voucher-btn" data-fee-id="<?php echo intval( $fee->id ); ?>" title="<?php esc_attr_e( 'Download Payment Voucher', 'school-management-system' ); ?>">
-														<span class="dashicons dashicons-media-document"></span>
-														<?php esc_html_e( 'Voucher', 'school-management-system' ); ?>
-													</button>
-												<?php else : ?>
-													<span class="sms-no-voucher" title="<?php esc_attr_e( 'Voucher available after payment', 'school-management-system' ); ?>">
-														<span class="dashicons dashicons-lock"></span>
-													</span>
-												<?php endif; ?>
+												<div class="sms-action-buttons">
+													<a class="sms-action-icon-btn sms-edit-fee" href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&action=edit&id=' . intval( $fee->id ) . '&tab=report' ) ); ?>">
+														<span class="dashicons dashicons-edit"></span>
+														<?php esc_html_e( 'Edit', 'school-management-system' ); ?>
+													</a>
+													<a class="sms-action-icon-btn sms-delete-fee" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=sms-fees&action=delete&id=' . intval( $fee->id ) . '&tab=report' ), 'sms_delete_fee_nonce' ) ); ?>">
+														<span class="dashicons dashicons-trash"></span>
+														<?php esc_html_e( 'Delete', 'school-management-system' ); ?>
+													</a>
+													<?php if ( in_array( $fee->status, array( 'paid', 'partially_paid' ) ) ) : ?>
+														<button type="button" class="button sms-voucher-btn" data-fee-id="<?php echo intval( $fee->id ); ?>" title="<?php esc_attr_e( 'Download Payment Voucher', 'school-management-system' ); ?>">
+															<span class="dashicons dashicons-media-document"></span>
+															<?php esc_html_e( 'Voucher', 'school-management-system' ); ?>
+														</button>
+													<?php else : ?>
+														<span class="sms-no-voucher" title="<?php esc_attr_e( 'Voucher available after payment', 'school-management-system' ); ?>">
+															<span class="dashicons dashicons-lock"></span>
+														</span>
+													<?php endif; ?>
+												</div>
 											</td>
 										</tr>
 									<?php endforeach; ?>
@@ -1546,6 +1739,12 @@ if ( isset( $_GET['sms_message'] ) ) {
 				$content.slideDown(300);
 				$button.find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
 				$button.data('expanded', true);
+			}
+		});
+
+		$(document).on('click', 'a.sms-delete-fee', function(e) {
+			if (!window.confirm('<?php echo esc_js( __( 'Are you sure?', 'school-management-system' ) ); ?>')) {
+				e.preventDefault();
 			}
 		});
 

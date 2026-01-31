@@ -1079,6 +1079,25 @@ class Admin {
 			exit;
 		}
 
+		// Handle teacher deletion.
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-teachers' === $_GET['page'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_teacher_nonce' ) ) {
+				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
+			}
+
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( esc_html__( 'Unauthorized access', 'school-management-system' ) );
+			}
+
+			$teacher_id = intval( $_GET['id'] ?? 0 );
+			if ( $teacher_id > 0 ) {
+				Teacher::delete( $teacher_id );
+			}
+
+			wp_redirect( admin_url( 'admin.php?page=sms-teachers&sms_message=teacher_deleted' ) );
+			exit;
+		}
+
 		// Handle fee deletion.
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && 'sms-fees' === $_GET['page'] ) {
 			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sms_delete_fee_nonce' ) ) {
