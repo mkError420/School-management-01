@@ -1471,11 +1471,15 @@ class Admin {
 				wp_die( esc_html__( 'Security check failed', 'school-management-system' ) );
 			}
 
+			// Clean amount inputs to handle commas.
+			$amount_input = str_replace( ',', '', $_POST['amount'] ?? '' );
+			$paid_amount_input = str_replace( ',', '', $_POST['paid_amount'] ?? '' );
+
 			$fee_data = array(
 				'student_id'   => intval( $_POST['student_id'] ?? 0 ),
 				'class_id'     => intval( $_POST['class_id'] ?? 0 ),
 				'fee_type'     => sanitize_text_field( $_POST['fee_type'] ?? '' ),
-				'amount'       => sanitize_text_field( $_POST['amount'] ?? '' ),
+				'amount'       => floatval( $amount_input ),
 				'payment_date' => sanitize_text_field( $_POST['payment_date'] ?? '' ),
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'pending' ),
 				'remarks'      => sanitize_textarea_field( $_POST['remarks'] ?? '' ),
@@ -1484,9 +1488,9 @@ class Admin {
 			// Handle Paid Amount logic.
 			$paid_amount = 0;
 			if ( 'paid' === $fee_data['status'] ) {
-				$paid_amount = floatval( $fee_data['amount'] );
+				$paid_amount = $fee_data['amount'];
 			} elseif ( 'partially_paid' === $fee_data['status'] ) {
-				$paid_amount = floatval( $_POST['paid_amount'] ?? 0 );
+				$paid_amount = floatval( $paid_amount_input );
 			} else {
 				$paid_amount = 0;
 			}
@@ -1535,7 +1539,11 @@ class Admin {
 				}
 
 				if ( $result !== false && ! is_wp_error( $result ) ) {
-					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_updated&student_id=' . $fee_data['student_id'] ) );
+					$redirect_url = admin_url( 'admin.php?page=sms-fees&sms_message=fee_updated&student_id=' . $fee_data['student_id'] );
+					if ( isset( $_GET['tab'] ) ) {
+						$redirect_url = add_query_arg( 'tab', sanitize_text_field( $_GET['tab'] ), $redirect_url );
+					}
+					wp_redirect( $redirect_url );
 				} else {
 					$error_msg = is_wp_error( $result ) ? $result->get_error_message() : 'Unknown error';
 					wp_redirect( admin_url( 'admin.php?page=sms-fees&sms_message=fee_update_error&error=' . urlencode( $error_msg ) . '&student_id=' . $fee_data['student_id'] ) );

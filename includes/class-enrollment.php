@@ -155,4 +155,53 @@ class Enrollment {
 
 		return $wpdb->get_results( $sql );
 	}
+
+	/**
+	 * Get enrollments with filters (including admission fee status).
+	 *
+	 * @param array $filters Filter parameters.
+	 * @param int   $limit   Number of records.
+	 * @param int   $offset  Offset.
+	 * @return array Array of enrollment objects.
+	 */
+	public static function get_with_filters( $filters = array(), $limit = 50, $offset = 0 ) {
+		global $wpdb;
+
+		$enrollments_table = $wpdb->prefix . 'sms_enrollments';
+		$students_table    = $wpdb->prefix . 'sms_students';
+		$classes_table     = $wpdb->prefix . 'sms_classes';
+		$fees_table        = $wpdb->prefix . 'sms_fees';
+
+		$sql = "SELECT DISTINCT e.* FROM $enrollments_table e
+				LEFT JOIN $students_table s ON e.student_id = s.id
+				LEFT JOIN $classes_table c ON e.class_id = c.id";
+
+		// Join fees if filtering by admission fee status
+		if ( ! empty( $filters['fee_status'] ) ) {
+			$sql .= " LEFT JOIN $fees_table f ON (e.student_id = f.student_id AND e.class_id = f.class_id AND f.fee_type = 'Admission Fee')";
+		}
+
+		$sql .= " WHERE 1=1";
+
+		if ( ! empty( $filters['search'] ) ) {
+			$search_term = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
+			$sql .= $wpdb->prepare( " AND (s.first_name LIKE %s OR s.last_name LIKE %s OR c.class_name LIKE %s OR s.roll_number LIKE %s)", $search_term, $search_term, $search_term, $search_term );
+		}
+
+		if ( ! empty( $filters['fee_status'] ) ) {
+			if ( 'paid' === $filters['fee_status'] ) {
+				$sql .= " AND f.status = 'paid'";
+			} elseif ( 'pending' === $filters['fee_status'] ) {
+				$sql .= " AND (f.status != 'paid' OR f.status IS NULL)";
+			}
+		}
+
+		$sql .= " ORDER BY e.id DESC";
+
+		if ( $limit > 0 ) {
+			$sql .= $wpdb->prepare( " LIMIT %d OFFSET %d", $limit, $offset );
+		}
+
+		return $wpdb->get_results( $sql );
+	}
 }

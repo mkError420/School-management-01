@@ -477,9 +477,15 @@ if ( 'edit' === $action && $enrollment_id ) {
 				</a>
 				<form method="get" action="" class="sms-enrollments-search">
 					<input type="hidden" name="page" value="sms-enrollments" />
+					<?php $fee_status = isset( $_GET['fee_status'] ) ? sanitize_text_field( $_GET['fee_status'] ) : ''; ?>
+					<select name="fee_status" style="margin-right: 10px; border-radius: 10px; border: 1px solid #dee2e6; padding: 10px 12px;">
+						<option value=""><?php esc_html_e( 'All Payment Status', 'school-management-system' ); ?></option>
+						<option value="paid" <?php selected( $fee_status, 'paid' ); ?>><?php esc_html_e( 'Paid', 'school-management-system' ); ?></option>
+						<option value="pending" <?php selected( $fee_status, 'pending' ); ?>><?php esc_html_e( 'Pending', 'school-management-system' ); ?></option>
+					</select>
 					<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search by student or class...', 'school-management-system' ); ?>" />
 					<button type="submit" class="sms-search-btn"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
-					<?php if ( ! empty( $_GET['s'] ) ) : ?>
+					<?php if ( ! empty( $_GET['s'] ) || ! empty( $_GET['fee_status'] ) ) : ?>
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-enrollments' ) ); ?>" class="sms-reset-btn"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
 					<?php endif; ?>
 				</form>
@@ -517,11 +523,13 @@ if ( 'edit' === $action && $enrollment_id ) {
 		<tbody>
 			<?php
 			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
-			if ( ! empty( $search_term ) ) {
-				$enrollments = Enrollment::search( $search_term );
-			} else {
-				$enrollments = Enrollment::get_all( array(), 50 );
-			}
+			
+			$filters = array(
+				'search'     => $search_term,
+				'fee_status' => $fee_status,
+			);
+			$enrollments = Enrollment::get_with_filters( $filters, 50 );
+			
 			if ( ! empty( $enrollments ) ) {
 				foreach ( $enrollments as $enrollment ) {
 					$student = Student::get( $enrollment->student_id );
