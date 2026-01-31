@@ -208,9 +208,11 @@ if ( isset( $_GET['sms_message'] ) && 'attendance_saved' === $_GET['sms_message'
 				$days_in_month = cal_days_in_month( CAL_GREGORIAN, $report_month, $report_year );
 				$students = Classm::get_students( $class_id );
 				$attendance_report = Attendance::get_monthly_class_attendance_report( $class_id, $report_year, $report_month );
+				$current_class = Classm::get( $class_id );
+				$class_name_display = $current_class ? $current_class->class_name : '';
 				?>
 				<div class="report-actions">
-					<h3 style="margin:0;"><?php printf( 'Attendance for %s, %s', esc_html( date_i18n( 'F', mktime( 0, 0, 0, $report_month, 1 ) ) ), esc_html( $report_year ) ); ?></h3>
+					<h3 style="margin:0;"><?php printf( 'Attendance Report: %s - %s %s', esc_html( $class_name_display ), esc_html( date_i18n( 'F', mktime( 0, 0, 0, $report_month, 1 ) ) ), esc_html( $report_year ) ); ?></h3>
 					<button id="print-attendance-report" class="button"><span class="dashicons dashicons-printer"></span> <?php esc_html_e( 'Print Report', 'school-management-system' ); ?></button>
 				</div>
 
@@ -292,25 +294,45 @@ jQuery(document).ready(function($) {
 		e.preventDefault();
 		var printContents = document.getElementById('sms-attendance-report-printable').innerHTML;
 		var reportTitle = '<h1>' + $('#sms-attendance-report-wrapper h3').first().text() + '</h1>';
+		var legendHtml = $('.report-legend').prop('outerHTML');
 
 		var printWindow = window.open('', '', 'height=800,width=1200');
-		printWindow.document.write('<html><head><title>Print Attendance Report</title>');
+		printWindow.document.write('<!DOCTYPE html><html><head><title>Print Attendance Report</title>');
 		printWindow.document.write('<style>' +
-			'body { font-family: Arial, sans-serif; }' +
-			'table { width: 100%; border-collapse: collapse; }' +
-			'th, td { border: 1px solid #ccc; padding: 5px; text-align: center; font-size: 10px; }' +
-			'th { background-color: #f2f2f2; }' +
-			'.student-name { text-align: left; font-weight: bold; }' +
-			'.att-status { display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; color: #fff; font-weight: bold; -webkit-print-color-adjust: exact; }' +
+			'@page { size: landscape; margin: 10mm; }' +
+			'body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; background: #fff; margin: 0; padding: 20px; }' +
+			'.report-container { width: 100%; margin: 0 auto; }' +
+			'h1 { text-align: center; color: #2c3e50; font-size: 22px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #3498db; padding-bottom: 15px; display: inline-block; width: 100%; }' +
+			'.report-meta { text-align: center; color: #7f8c8d; font-size: 11px; margin-bottom: 20px; font-style: italic; }' +
+			'.report-legend { display: flex; justify-content: center; gap: 15px; list-style: none; padding: 0; margin: 0 0 20px 0; font-size: 11px; }' +
+			'.report-legend li { display: flex; align-items: center; gap: 5px; }' +
+			'table { width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e0e0e0; margin-top: 10px; }' +
+			'th, td { padding: 6px 3px; text-align: center; border: 1px solid #e0e0e0; }' +
+			'thead th { background-color: #34495e; color: #fff; font-weight: 600; white-space: nowrap; -webkit-print-color-adjust: exact; print-color-adjust: exact; border: none; }' +
+			'tbody tr:nth-child(even) { background-color: #f8f9fa; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+			'.student-name { text-align: left; font-weight: 600; color: #2c3e50; padding-left: 8px; background-color: #fff; position: sticky; left: 0; min-width: 150px; border-right: 2px solid #eee; }' +
+			'.att-status { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; color: #fff; font-weight: bold; font-size: 9px; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }' +
 			'.att-present { background-color: #28a745 !important; }' +
 			'.att-absent { background-color: #dc3545 !important; }' +
 			'.att-late { background-color: #fd7e14 !important; }' +
 			'.att-excused { background-color: #007bff !important; }' +
 			'.att-holiday { background-color: #f0f0f0 !important; color: #666 !important; }' +
+			'.summary-col { font-weight: bold; background-color: #ecf0f1 !important; color: #2c3e50; }' +
+			'.footer { margin-top: 30px; text-align: center; font-size: 9px; color: #bdc3c7; border-top: 1px solid #eee; padding-top: 10px; }' +
 			'</style>');
-		printWindow.document.write('</head><body>' + reportTitle + printContents + '</body></html>');
+		printWindow.document.write('</head><body>');
+		printWindow.document.write('<div class="report-container">');
+		printWindow.document.write(reportTitle);
+		printWindow.document.write('<div class="report-meta">Generated on ' + new Date().toLocaleDateString() + '</div>');
+		if (legendHtml) printWindow.document.write(legendHtml);
+		printWindow.document.write(printContents);
+		printWindow.document.write('<div class="footer">School Management System Report</div>');
+		printWindow.document.write('</div>');
+		printWindow.document.write('</body></html>');
 		printWindow.document.close();
-		printWindow.print();
+		setTimeout(function() {
+			printWindow.print();
+		}, 500);
 	});
 });
 </script>

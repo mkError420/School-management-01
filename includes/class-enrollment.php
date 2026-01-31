@@ -32,7 +32,7 @@ class Enrollment {
 		}
 
 		if ( empty( $enrollment_data['status'] ) ) {
-			$enrollment_data['status'] = 'enrolled';
+			$enrollment_data['status'] = 'active';
 		}
 
 		return Database::insert( 'enrollments', $enrollment_data );
@@ -116,7 +116,7 @@ class Enrollment {
 	 * @return array Array of enrollment objects.
 	 */
 	public static function get_class_enrollments( $class_id ) {
-		return Database::get_results( 'enrollments', array( 'class_id' => $class_id, 'status' => 'enrolled' ) );
+		return Database::get_results( 'enrollments', array( 'class_id' => $class_id, 'status' => 'active' ) );
 	}
 
 	/**
@@ -127,7 +127,7 @@ class Enrollment {
 	 * @return bool True if enrolled, false otherwise.
 	 */
 	public static function is_enrolled( $student_id, $class_id ) {
-		return Database::exists( 'enrollments', array( 'student_id' => $student_id, 'class_id' => $class_id, 'status' => 'enrolled' ) );
+		return Database::exists( 'enrollments', array( 'student_id' => $student_id, 'class_id' => $class_id ) );
 	}
 
 	/**

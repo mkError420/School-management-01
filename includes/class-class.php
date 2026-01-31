@@ -118,7 +118,7 @@ class Classm {
 		$sql = $wpdb->prepare(
 			"SELECT s.* FROM $students_table s
 			INNER JOIN $enrollments_table e ON s.id = e.student_id
-			WHERE e.class_id = %d AND e.status = 'enrolled'
+			WHERE e.class_id = %d AND e.status = 'active'
 			ORDER BY s.first_name ASC",
 			$class_id
 		);

@@ -32,6 +32,16 @@ class Admin {
 			26
 		);
 
+		// Enrollments submenu.
+		add_submenu_page(
+			'sms-dashboard',
+			__( 'Enrollments', 'school-management-system' ),
+			__( 'Enrollments', 'school-management-system' ),
+			'manage_options',
+			'sms-enrollments',
+			array( $this, 'display_enrollments' )
+		);
+
 		// Students submenu.
 		add_submenu_page(
 			'sms-dashboard',
@@ -72,26 +82,6 @@ class Admin {
 			array( $this, 'display_subjects' )
 		);
 
-		// Enrollments submenu.
-		add_submenu_page(
-			'sms-dashboard',
-			__( 'Enrollments', 'school-management-system' ),
-			__( 'Enrollments', 'school-management-system' ),
-			'manage_options',
-			'sms-enrollments',
-			array( $this, 'display_enrollments' )
-		);
-
-		// Attendance submenu.
-		add_submenu_page(
-			'sms-dashboard',
-			__( 'Notice', 'school-management-system' ),
-			__( 'Notice', 'school-management-system' ),
-			'manage_options',
-			'sms-attendance',
-			array( $this, 'display_attendance' )
-		);
-
 		// Student Attendance submenu.
 		add_submenu_page(
 			'sms-dashboard',
@@ -101,17 +91,6 @@ class Admin {
 			'sms-student-attendance',
 			array( $this, 'display_student_attendance' )
 		);
-
-		// Fees submenu (Dashboard).
-		$fees_page = add_submenu_page(
-			'sms-dashboard',
-			__( 'Fees Dashboard', 'school-management-system' ),
-			__( 'Fees', 'school-management-system' ),
-			'manage_options',
-			'sms-fees',
-			array( $this, 'display_fees' )
-		);
-		add_action( 'admin_footer-' . $fees_page, array( $this, 'fees_page_scripts' ) );
 
 		// Exams submenu.
 		add_submenu_page(
@@ -131,6 +110,27 @@ class Admin {
 			'manage_options',
 			'sms-results',
 			array( $this, 'display_results' )
+		);
+
+		// Fees submenu (Dashboard).
+		$fees_page = add_submenu_page(
+			'sms-dashboard',
+			__( 'Fees Dashboard', 'school-management-system' ),
+			__( 'Fees', 'school-management-system' ),
+			'manage_options',
+			'sms-fees',
+			array( $this, 'display_fees' )
+		);
+		add_action( 'admin_footer-' . $fees_page, array( $this, 'fees_page_scripts' ) );
+
+		// Notice submenu.
+		add_submenu_page(
+			'sms-dashboard',
+			__( 'Notice', 'school-management-system' ),
+			__( 'Notice', 'school-management-system' ),
+			'manage_options',
+			'sms-attendance',
+			array( $this, 'display_attendance' )
 		);
 
 		// Settings submenu.
