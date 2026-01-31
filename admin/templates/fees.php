@@ -14,6 +14,10 @@ if ( ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
 }
 
+// Get currency setting
+$settings = get_option( 'sms_settings' );
+$currency = $settings['currency'] ?? '৳';
+
 $fee = null;
 $is_edit = false;
 $action = sanitize_text_field( $_GET['action'] ?? '' );
@@ -105,7 +109,33 @@ if ( isset( $_GET['sms_message'] ) ) {
 .sms-collection-amount { font-weight: 700; color: #2c3e50; background: #eef2f7; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* p><?php esc_html_e( 'Please fill in the details below to add new fee information for a student. After saving, the fee record will be available on the dashboard for review.', 'school-management-system' ); ?></p>
+/* Report Filters */
+.sms-report-filters { background: #fff; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 4px; }
+.sms-report-filters .filter-item { display: inline-block; margin-right: 15px; margin-bottom: 10px; }
+.sms-report-filters label { display: block; margin-bottom: 5px; font-weight: 600; }
+.sms-report-filters input, .sms-report-filters select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+	<h1><?php esc_html_e( 'Fees Management', 'school-management-system' ); ?></h1>
+	<hr class="wp-header-end">
+
+	<?php if ( ! empty( $message ) ) : ?>
+		<div class="notice <?php echo esc_attr( $message_class ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+	<?php endif; ?>
+
+	<!-- Navigation Tabs -->
+	<nav class="nav-tab-wrapper">
+		<a href="?page=sms-fees&tab=dashboard" class="nav-tab <?php echo 'dashboard' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Dashboard', 'school-management-system' ); ?></a>
+		<a href="?page=sms-fees&action=add" class="nav-tab <?php echo $show_form ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Add Fee', 'school-management-system' ); ?></a>
+		<a href="?page=sms-fees&tab=report" class="nav-tab <?php echo 'report' === $active_tab ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'Reports', 'school-management-system' ); ?></a>
+		<a href="?page=sms-fees&action=export_fees_report&_wpnonce=<?php echo wp_create_nonce( 'sms_export_fees_nonce' ); ?>" class="nav-tab" style="float: right;"><?php esc_html_e( 'Export CSV', 'school-management-system' ); ?></a>
+	</nav>
+
+	<?php if ( $show_form ) : ?>
+	<div style="background: #fff; padding: 20px; border: 1px solid #ddd; margin-top: 20px; border-radius: 4px;">
+		<h2><?php echo $is_edit ? esc_html__( 'Edit Fee', 'school-management-system' ) : esc_html__( 'Add New Fee', 'school-management-system' ); ?></h2>
+		<p><?php esc_html_e( 'Please fill in the details below to add new fee information for a student. After saving, the fee record will be available on the dashboard for review.', 'school-management-system' ); ?></p>
 
 		<form method="post" action="">
 			<?php wp_nonce_field( 'sms_nonce_form', 'sms_nonce' ); ?>
@@ -409,103 +439,395 @@ if ( isset( $_GET['sms_message'] ) ) {
 				'end_date'   => $report_end_date,
 			);
 			$fees_report = Fee::get_fees_report( $report_filters );
+			
+			// Calculate statistics
+			$total_records = count( $fees_report );
+			$total_amount = 0;
+			$total_paid   = 0;
+			$total_due    = 0;
+			$paid_count   = 0;
+			$pending_count = 0;
+			$partial_count = 0;
+			
+			if ( ! empty( $fees_report ) ) {
+				foreach ( $fees_report as $fee ) {
+					$due = $fee->amount - $fee->paid_amount;
+					$total_amount += $fee->amount;
+					$total_paid   += $fee->paid_amount;
+					$total_due    += $due;
+					
+					if ( 'paid' === $fee->status ) {
+						$paid_count++;
+					} elseif ( 'pending' === $fee->status ) {
+						$pending_count++;
+					} elseif ( 'partially_paid' === $fee->status ) {
+						$partial_count++;
+					}
+				}
+			}
 			?>
-			<div class="sms-report-filters">
-				<form method="get" action="">
-					<input type="hidden" name="page" value="sms-fees" />
-					<input type="hidden" name="tab" value="report" />
-					<div class="filter-item">
-						<label for="start_date"><?php esc_html_e( 'From Due Date:', 'school-management-system' ); ?></label>
-						<input type="date" name="start_date" id="start_date" value="<?php echo esc_attr( $report_start_date ); ?>" />
+			
+			<!-- Unique Reports Section Design -->
+			<div class="sms-reports-container">
+				<!-- Advanced Filter Section -->
+				<div class="sms-filter-card">
+					<div class="sms-filter-header">
+						<h3><span class="dashicons dashicons-filter" style="margin-right: 8px;"></span><?php esc_html_e( 'Advanced Filters', 'school-management-system' ); ?></h3>
+						<div class="sms-filter-actions">
+							<button type="button" class="button sms-toggle-filters" data-expanded="true">
+								<span class="dashicons dashicons-arrow-up-alt2"></span>
+							</button>
+						</div>
 					</div>
-					<div class="filter-item">
-						<label for="end_date"><?php esc_html_e( 'To Due Date:', 'school-management-system' ); ?></label>
-						<input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $report_end_date ); ?>" />
+					<div class="sms-filter-content">
+						<form method="get" action="" class="sms-filter-form">
+							<input type="hidden" name="page" value="sms-fees" />
+							<input type="hidden" name="tab" value="report" />
+							
+							<div class="sms-filter-grid">
+								<div class="sms-filter-group">
+									<label class="sms-filter-label">
+										<span class="dashicons dashicons-calendar-alt"></span>
+										<?php esc_html_e( 'Date Range', 'school-management-system' ); ?>
+									</label>
+									<div class="sms-date-range">
+										<input type="date" name="start_date" id="start_date" value="<?php echo esc_attr( $report_start_date ); ?>" placeholder="<?php esc_html_e( 'From', 'school-management-system' ); ?>" />
+										<span class="sms-date-separator"><?php esc_html_e( 'to', 'school-management-system' ); ?></span>
+										<input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $report_end_date ); ?>" placeholder="<?php esc_html_e( 'To', 'school-management-system' ); ?>" />
+									</div>
+								</div>
+								
+								<div class="sms-filter-group">
+									<label class="sms-filter-label">
+										<span class="dashicons dashicons-groups"></span>
+										<?php esc_html_e( 'Class', 'school-management-system' ); ?>
+									</label>
+									<select name="class_id" class="sms-filter-select">
+										<option value=""><?php esc_html_e( 'All Classes', 'school-management-system' ); ?></option>
+										<?php
+										$classes = Classm::get_all( array(), 100 );
+										foreach ( $classes as $class ) {
+											echo '<option value="' . intval( $class->id ) . '" ' . selected( $report_class_id, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
+										}
+										?>
+									</select>
+								</div>
+								
+								<div class="sms-filter-group">
+									<label class="sms-filter-label">
+										<span class="dashicons dashicons-yes-alt"></span>
+										<?php esc_html_e( 'Payment Status', 'school-management-system' ); ?>
+									</label>
+									<select name="status" class="sms-filter-select">
+										<option value=""><?php esc_html_e( 'All Statuses', 'school-management-system' ); ?></option>
+										<option value="paid" <?php selected( $report_status, 'paid' ); ?>><?php esc_html_e( 'Paid', 'school-management-system' ); ?></option>
+										<option value="pending" <?php selected( $report_status, 'pending' ); ?>><?php esc_html_e( 'Unpaid', 'school-management-system' ); ?></option>
+										<option value="partially_paid" <?php selected( $report_status, 'partially_paid' ); ?>><?php esc_html_e( 'Partially Paid', 'school-management-system' ); ?></option>
+									</select>
+								</div>
+							</div>
+							
+							<div class="sms-filter-buttons">
+								<button type="submit" class="button button-primary sms-generate-btn">
+									<span class="dashicons dashicons-chart-bar"></span>
+									<?php esc_html_e( 'Generate Report', 'school-management-system' ); ?>
+								</button>
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&tab=report' ) ); ?>" class="button">
+									<span class="dashicons dashicons-update"></span>
+									<?php esc_html_e( 'Reset Filters', 'school-management-system' ); ?>
+								</a>
+								<a href="?page=sms-fees&action=export_fees_report&_wpnonce=<?php echo wp_create_nonce( 'sms_export_fees_nonce' ); ?>" class="button sms-export-btn">
+									<span class="dashicons dashicons-download"></span>
+									<?php esc_html_e( 'Export CSV', 'school-management-system' ); ?>
+								</a>
+							</div>
+						</form>
 					</div>
-					<div class="filter-item">
-						<select name="class_id">
-							<option value=""><?php esc_html_e( 'All Classes', 'school-management-system' ); ?></option>
-							<?php
-							$classes = Classm::get_all( array(), 100 );
-							foreach ( $classes as $class ) {
-								echo '<option value="' . intval( $class->id ) . '" ' . selected( $report_class_id, $class->id, false ) . '>' . esc_html( $class->class_name ) . '</option>';
-							}
-							?>
-						</select>
-					</div>
-					<div class="filter-item">
-						<select name="status">
-							<option value=""><?php esc_html_e( 'All Statuses', 'school-management-system' ); ?></option>
-							<option value="paid" <?php selected( $report_status, 'paid' ); ?>><?php esc_html_e( 'Paid', 'school-management-system' ); ?></option>
-							<option value="pending" <?php selected( $report_status, 'pending' ); ?>><?php esc_html_e( 'Unpaid', 'school-management-system' ); ?></option>
-							<option value="partially_paid" <?php selected( $report_status, 'partially_paid' ); ?>><?php esc_html_e( 'Partially Paid', 'school-management-system' ); ?></option>
-						</select>
-					</div>
-					<button type="submit" class="button button-primary"><?php esc_html_e( 'Generate Report', 'school-management-system' ); ?></button>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-fees&tab=report' ) ); ?>" class="button"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
-				</form>
-			</div>
+				</div>
 
-				<table class="wp-list-table widefat fixed striped sms-fees-report-table">
-					<thead>
-						<tr>
-							<th><?php esc_html_e( 'Student', 'school-management-system' ); ?></th>
-							<th><?php esc_html_e( 'Class', 'school-management-system' ); ?></th>
-							<th><?php esc_html_e( 'Fee Type', 'school-management-system' ); ?></th>
-							<th style="text-align: right;"><?php esc_html_e( 'Amount', 'school-management-system' ); ?></th>
-							<th style="text-align: right;"><?php esc_html_e( 'Paid', 'school-management-system' ); ?></th>
-							<th style="text-align: right;"><?php esc_html_e( 'Due', 'school-management-system' ); ?></th>
-							<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
-							<th><?php esc_html_e( 'Due Date', 'school-management-system' ); ?></th>
-							<th><?php esc_html_e( 'Payment Date', 'school-management-system' ); ?></th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php
-						$total_amount = 0;
-						$total_paid   = 0;
-						$total_due    = 0;
-						if ( ! empty( $fees_report ) ) {
-							foreach ( $fees_report as $fee ) {
-								$due = $fee->amount - $fee->paid_amount;
-								$total_amount += $fee->amount;
-								$total_paid   += $fee->paid_amount;
-								$total_due    += $due;
-								?>
+				<!-- Statistics Cards -->
+				<div class="sms-stats-grid">
+					<div class="sms-stat-card sms-total-records">
+						<div class="sms-stat-icon">
+							<span class="dashicons dashicons-list-view"></span>
+						</div>
+						<div class="sms-stat-content">
+							<div class="sms-stat-number"><?php echo esc_html( $total_records ); ?></div>
+							<div class="sms-stat-label"><?php esc_html_e( 'Total Records', 'school-management-system' ); ?></div>
+						</div>
+					</div>
+					
+					<div class="sms-stat-card sms-total-amount">
+						<div class="sms-stat-icon">
+							<span class="dashicons dashicons-money-alt"></span>
+						</div>
+						<div class="sms-stat-content">
+							<div class="sms-stat-number"><?php echo esc_html( $currency . ' ' . number_format( $total_amount, 2 ) ); ?></div>
+							<div class="sms-stat-label"><?php esc_html_e( 'Total Amount', 'school-management-system' ); ?></div>
+						</div>
+					</div>
+					
+					<div class="sms-stat-card sms-paid-amount">
+						<div class="sms-stat-icon">
+							<span class="dashicons dashicons-yes-alt"></span>
+						</div>
+						<div class="sms-stat-content">
+							<div class="sms-stat-number"><?php echo esc_html( $currency . ' ' . number_format( $total_paid, 2 ) ); ?></div>
+							<div class="sms-stat-label"><?php esc_html_e( 'Paid Amount', 'school-management-system' ); ?></div>
+						</div>
+					</div>
+					
+					<div class="sms-stat-card sms-due-amount">
+						<div class="sms-stat-icon">
+							<span class="dashicons dashicons-warning"></span>
+						</div>
+						<div class="sms-stat-content">
+							<div class="sms-stat-number"><?php echo esc_html( $currency . ' ' . number_format( $total_due, 2 ) ); ?></div>
+							<div class="sms-stat-label"><?php esc_html_e( 'Due Amount', 'school-management-system' ); ?></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Status Distribution -->
+				<div class="sms-status-distribution">
+					<h3><?php esc_html_e( 'Payment Status Distribution', 'school-management-system' ); ?></h3>
+					<div class="sms-status-bars">
+						<div class="sms-status-item">
+							<div class="sms-status-info">
+								<span class="sms-status-label"><?php esc_html_e( 'Paid', 'school-management-system' ); ?></span>
+								<span class="sms-status-count"><?php echo esc_html( $paid_count ); ?></span>
+							</div>
+							<div class="sms-status-bar">
+								<div class="sms-status-progress sms-paid" style="width: <?php echo $total_records > 0 ? ( $paid_count / $total_records ) * 100 : 0; ?>%;"></div>
+							</div>
+						</div>
+						
+						<div class="sms-status-item">
+							<div class="sms-status-info">
+								<span class="sms-status-label"><?php esc_html_e( 'Pending', 'school-management-system' ); ?></span>
+								<span class="sms-status-count"><?php echo esc_html( $pending_count ); ?></span>
+							</div>
+							<div class="sms-status-bar">
+								<div class="sms-status-progress sms-pending" style="width: <?php echo $total_records > 0 ? ( $pending_count / $total_records ) * 100 : 0; ?>%;"></div>
+							</div>
+						</div>
+						
+						<div class="sms-status-item">
+							<div class="sms-status-info">
+								<span class="sms-status-label"><?php esc_html_e( 'Partially Paid', 'school-management-system' ); ?></span>
+								<span class="sms-status-count"><?php echo esc_html( $partial_count ); ?></span>
+							</div>
+							<div class="sms-status-bar">
+								<div class="sms-status-progress sms-partial" style="width: <?php echo $total_records > 0 ? ( $partial_count / $total_records ) * 100 : 0; ?>%;"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Enhanced Data Table -->
+				<div class="sms-data-table-container">
+					<div class="sms-table-header">
+						<h3><span class="dashicons dashicons-table" style="margin-right: 8px;"></span><?php esc_html_e( 'Fee Details', 'school-management-system' ); ?></h3>
+						<div class="sms-table-info">
+							<span class="sms-record-count"><?php printf( esc_html__( '%d records found', 'school-management-system' ), $total_records ); ?></span>
+						</div>
+					</div>
+					
+					<div class="sms-table-wrapper">
+						<table class="sms-enhanced-table">
+							<thead>
 								<tr>
-									<td><strong><?php echo esc_html( $fee->first_name . ' ' . $fee->last_name ); ?></strong><br><small><?php echo esc_html( $fee->roll_number ); ?></small></td>
-									<td><?php echo esc_html( $fee->class_name ); ?></td>
-									<td><?php echo esc_html( $fee->fee_type ); ?></td>
-									<td style="text-align: right;"><?php echo esc_html( number_format( $fee->amount, 2 ) ); ?></td>
-									<td style="text-align: right;"><?php echo esc_html( number_format( $fee->paid_amount, 2 ) ); ?></td>
-									<td style="text-align: right;"><?php echo esc_html( number_format( $due, 2 ) ); ?></td>
-									<td><span class="sms-status-badge status-<?php echo esc_attr( $fee->status ); ?>"><?php echo esc_html( ucfirst( str_replace( '_', ' ', $fee->status ) ) ); ?></span></td>
-									<td><?php echo esc_html( $fee->due_date ); ?></td>
-									<td><?php echo esc_html( $fee->payment_date ); ?></td>
+									<th class="sms-col-student">
+										<span class="dashicons dashicons-admin-users"></span>
+										<?php esc_html_e( 'Student', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-class">
+										<span class="dashicons dashicons-groups"></span>
+										<?php esc_html_e( 'Class', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-fee-type">
+										<span class="dashicons dashicons-tag"></span>
+										<?php esc_html_e( 'Fee Type', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-amount">
+										<span class="dashicons dashicons-money-alt"></span>
+										<?php esc_html_e( 'Amount', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-paid">
+										<span class="dashicons dashicons-yes-alt"></span>
+										<?php esc_html_e( 'Paid', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-due">
+										<span class="dashicons dashicons-warning"></span>
+										<?php esc_html_e( 'Due', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-status">
+										<span class="dashicons dashicons-flag"></span>
+										<?php esc_html_e( 'Status', 'school-management-system' ); ?>
+									</th>
+									<th class="sms-col-dates">
+										<span class="dashicons dashicons-calendar"></span>
+										<?php esc_html_e( 'Dates', 'school-management-system' ); ?>
+									</th>
 								</tr>
-								<?php
-							}
-						} else {
-							echo '<tr><td colspan="9">' . esc_html__( 'No fee records found for the selected filters.', 'school-management-system' ) . '</td></tr>';
-						}
-						?>
-					</tbody>
-					<tfoot>
-						<tr>
-							<th colspan="3"><?php esc_html_e( 'Total', 'school-management-system' ); ?></th>
-							<td style="text-align: right;"><?php echo esc_html( number_format( $total_amount, 2 ) ); ?></td>
-							<td style="text-align: right;"><?php echo esc_html( number_format( $total_paid, 2 ) ); ?></td>
-							<td style="text-align: right;"><?php echo esc_html( number_format( $total_due, 2 ) ); ?></td>
-							<th colspan="3"></th>
-						</tr>
-					</tfoot>
-				</table>
+							</thead>
+							<tbody>
+								<?php if ( ! empty( $fees_report ) ) : ?>
+									<?php foreach ( $fees_report as $index => $fee ) : ?>
+										<?php 
+										$due = $fee->amount - $fee->paid_amount;
+										$row_class = ( $index % 2 === 0 ) ? 'sms-even-row' : 'sms-odd-row';
+										if ( 'pending' === $fee->status ) {
+											$row_class .= ' sms-overdue-row';
+										}
+										?>
+										<tr class="<?php echo esc_attr( $row_class ); ?>">
+											<td class="sms-student-cell">
+												<div class="sms-student-avatar">
+													<span class="dashicons dashicons-admin-users"></span>
+												</div>
+												<div class="sms-student-details">
+													<div class="sms-student-name"><?php echo esc_html( $fee->first_name . ' ' . $fee->last_name ); ?></div>
+													<div class="sms-student-roll"><?php echo esc_html( $fee->roll_number ); ?></div>
+												</div>
+											</td>
+											<td class="sms-class-cell">
+												<span class="sms-class-badge"><?php echo esc_html( $fee->class_name ); ?></span>
+											</td>
+											<td class="sms-fee-type-cell">
+												<div class="sms-fee-type"><?php echo esc_html( $fee->fee_type ); ?></div>
+											</td>
+											<td class="sms-amount-cell">
+												<span class="sms-amount"><?php echo esc_html( number_format( $fee->amount, 2 ) ); ?></span>
+											</td>
+											<td class="sms-paid-cell">
+												<span class="sms-paid-amount sms-positive"><?php echo esc_html( number_format( $fee->paid_amount, 2 ) ); ?></span>
+											</td>
+											<td class="sms-due-cell">
+												<span class="sms-due-amount <?php echo $due > 0 ? 'sms-negative' : 'sms-positive'; ?>">
+													<?php echo esc_html( number_format( $due, 2 ) ); ?>
+												</span>
+											</td>
+											<td class="sms-status-cell">
+												<span class="sms-status-badge-enhanced status-<?php echo esc_attr( $fee->status ); ?>">
+													<?php 
+													$status_icons = array(
+														'paid' => 'yes-alt',
+														'pending' => 'clock',
+														'partially_paid' => 'warning'
+													);
+													$icon = $status_icons[ $fee->status ] ?? 'marker';
+													?>
+													<span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>"></span>
+													<?php echo esc_html( ucfirst( str_replace( '_', ' ', $fee->status ) ) ); ?>
+												</span>
+											</td>
+											<td class="sms-dates-cell">
+												<div class="sms-date-info">
+													<div class="sms-due-date">
+														<span class="dashicons dashicons-calendar-alt"></span>
+														<?php echo esc_html( $fee->due_date ); ?>
+													</div>
+													<?php if ( ! empty( $fee->payment_date ) ) : ?>
+														<div class="sms-payment-date">
+															<span class="dashicons dashicons-yes"></span>
+															<?php echo esc_html( $fee->payment_date ); ?>
+														</div>
+													<?php endif; ?>
+												</div>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								<?php else : ?>
+									<tr class="sms-empty-row">
+										<td colspan="8">
+											<div class="sms-empty-state">
+												<span class="dashicons dashicons-search"></span>
+												<p><?php esc_html_e( 'No fee records found for the selected filters.', 'school-management-system' ); ?></p>
+												<small><?php esc_html_e( 'Try adjusting your filter criteria to see more results.', 'school-management-system' ); ?></small>
+											</div>
+										</td>
+									</tr>
+								<?php endif; ?>
+							</tbody>
+							<tfoot>
+								<tr class="sms-summary-row">
+									<th colspan="3" class="sms-summary-label">
+										<span class="dashicons dashicons-chart-bar"></span>
+										<?php esc_html_e( 'TOTAL SUMMARY', 'school-management-system' ); ?>
+									</th>
+									<td class="sms-summary-amount">
+										<span class="sms-total-amount"><?php echo esc_html( number_format( $total_amount, 2 ) ); ?></span>
+									</td>
+									<td class="sms-summary-paid">
+										<span class="sms-total-paid sms-positive"><?php echo esc_html( number_format( $total_paid, 2 ) ); ?></span>
+									</td>
+									<td class="sms-summary-due">
+										<span class="sms-total-due <?php echo $total_due > 0 ? 'sms-negative' : 'sms-positive'; ?>">
+											<?php echo esc_html( number_format( $total_due, 2 ) ); ?>
+										</span>
+									</td>
+									<td colspan="2" class="sms-summary-actions">
+										<div class="sms-summary-percentage">
+											<?php 
+											$collection_rate = $total_amount > 0 ? ( $total_paid / $total_amount ) * 100 : 0;
+											printf( esc_html__( '%.1f%% Collected', 'school-management-system' ), $collection_rate );
+											?>
+										</div>
+									</td>
+								</tr>
+							</tfoot>
+						</table>
+					</div>
+				</div>
 			</div>
 		<?php endif; ?>
 	<?php endif; ?>
 
 	<script>
 	jQuery(document).ready(function($) {
-		// ... (rest of the script)
+		// Collection tabs functionality
+		$('.sms-collection-tab').on('click', function() {
+			var target = $(this).data('target');
+			$('.sms-collection-tab').removeClass('active');
+			$('.sms-collection-content').removeClass('active');
+			$(this).addClass('active');
+			$('#' + target).addClass('active');
+		});
+
+		// Auto-fill class when student is selected
+		$('#student_id').on('change', function() {
+			var studentId = $(this).val();
+			var classId = $(this).find('option:selected').data('class-id');
+			if (classId) {
+				$('#class_id').val(classId);
+			}
+		});
+
+		// Show/hide partial payment fields based on status
+		$('#status').on('change', function() {
+			var status = $(this).val();
+			if (status === 'partially_paid') {
+				$('.partial-payment-field').show();
+			} else {
+				$('.partial-payment-field').hide();
+				if (status === 'paid') {
+					var amount = parseFloat($('#amount').val()) || 0;
+					$('#paid_amount').val(amount);
+				}
+			}
+		});
+
+		// Calculate due amount when paid amount changes
+		$('#amount, #paid_amount').on('input', function() {
+			var amount = parseFloat($('#amount').val()) || 0;
+			var paidAmount = parseFloat($('#paid_amount').val()) || 0;
+			var dueAmount = amount - paidAmount;
+			$('#due_amount').val(dueAmount.toFixed(2));
+		});
+
+		// Initialize on page load
+		$('#status').trigger('change');
+	});
 	</script>
 </div>
