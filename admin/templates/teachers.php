@@ -25,8 +25,7 @@ if ( 'edit' === $action && $teacher_id ) {
 }
 
 // The $teacher variable is set above when editing.
-$first_name     = $is_edit ? $teacher->first_name : '';
-$last_name      = $is_edit ? $teacher->last_name : '';
+$full_name      = $is_edit ? trim( $teacher->first_name . ' ' . $teacher->last_name ) : '';
 $email          = $is_edit ? $teacher->email : '';
 $phone          = $is_edit ? $teacher->phone : '';
 $employee_id    = $is_edit ? $teacher->employee_id : '';
@@ -417,18 +416,10 @@ $inactive_teachers = Teacher::count( array( 'status' => 'inactive' ) );
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="first_name"><?php esc_html_e( 'First Name', 'school-management-system' ); ?></label>
+							<label for="first_name"><?php esc_html_e( 'Full Name', 'school-management-system' ); ?></label>
 						</th>
 						<td>
-							<input type="text" name="first_name" id="first_name" class="regular-text" value="<?php echo esc_attr( $first_name ); ?>" required>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="last_name"><?php esc_html_e( 'Last Name', 'school-management-system' ); ?></label>
-						</th>
-						<td>
-							<input type="text" name="last_name" id="last_name" class="regular-text" value="<?php echo esc_attr( $last_name ); ?>" required>
+							<input type="text" name="first_name" id="first_name" class="regular-text" value="<?php echo esc_attr( $full_name ); ?>" required>
 						</td>
 					</tr>
 					<tr>
@@ -555,7 +546,7 @@ $inactive_teachers = Teacher::count( array( 'status' => 'inactive' ) );
 					<tr class="teacher-row">
 						<th scope="row" class="check-column"><input type="checkbox" name="teacher_ids[]" value="<?php echo intval( $teacher->id ); ?>"></th>
 						<td data-label="<?php esc_attr_e( 'ID', 'school-management-system' ); ?>"><?php echo intval( $teacher->id ); ?></td>
-						<td data-label="<?php esc_attr_e( 'Name', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->first_name . ' ' . $teacher->last_name ); ?></td>
+						<td data-label="<?php esc_attr_e( 'Name', 'school-management-system' ); ?>"><?php echo esc_html( trim( $teacher->first_name . ' ' . $teacher->last_name ) ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Employee ID', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->employee_id ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Email', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->email ); ?></td>
 						<td data-label="<?php esc_attr_e( 'Phone', 'school-management-system' ); ?>"><?php echo esc_html( $teacher->phone ); ?></td>

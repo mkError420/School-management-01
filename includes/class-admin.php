@@ -1393,6 +1393,7 @@ class Admin {
 			$subject_data = array(
 				'subject_name' => sanitize_text_field( $_POST['subject_name'] ?? '' ),
 				'subject_code' => sanitize_text_field( $_POST['subject_code'] ?? '' ),
+				'teacher_id'   => intval( $_POST['teacher_id'] ?? 0 ),
 				'status'       => sanitize_text_field( $_POST['status'] ?? 'active' ),
 			);
 

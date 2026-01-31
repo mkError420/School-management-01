@@ -6,6 +6,7 @@
  */
 
 use School_Management_System\Subject;
+use School_Management_System\Teacher;
 
 if ( ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'Unauthorized', 'school-management-system' ) );
@@ -279,6 +280,22 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 				</tr>
 				<tr>
 					<th scope="row">
+						<label for="teacher_id"><?php esc_html_e( 'Assign Teacher', 'school-management-system' ); ?></label>
+					</th>
+					<td>
+						<select name="teacher_id" id="teacher_id">
+							<option value=""><?php esc_html_e( 'Select Teacher', 'school-management-system' ); ?></option>
+							<?php
+							$teachers = Teacher::get_all( array( 'status' => 'active' ), 1000 );
+							foreach ( $teachers as $teacher ) {
+								printf( '<option value="%d" %s>%s</option>', intval( $teacher->id ), selected( $subject ? $subject->teacher_id : 0, $teacher->id, false ), esc_html( $teacher->first_name . ' ' . $teacher->last_name ) );
+							}
+							?>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
 						<label for="status"><?php esc_html_e( 'Status', 'school-management-system' ); ?></label>
 					</th>
 					<td>
@@ -317,9 +334,19 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 				<h2><?php esc_html_e( 'Subjects List', 'school-management-system' ); ?></h2>
 				<form method="get" action="" class="sms-subjects-search">
 					<input type="hidden" name="page" value="sms-subjects" />
+					<select name="teacher_id" style="margin-right: 10px; border-radius: 10px; border: 1px solid #dee2e6; padding: 10px 12px;">
+						<option value=""><?php esc_html_e( 'All Teachers', 'school-management-system' ); ?></option>
+						<?php
+						$teachers = Teacher::get_all( array( 'status' => 'active' ), 1000 );
+						$selected_teacher = isset( $_GET['teacher_id'] ) ? intval( $_GET['teacher_id'] ) : 0;
+						foreach ( $teachers as $teacher ) {
+							printf( '<option value="%d" %s>%s</option>', intval( $teacher->id ), selected( $selected_teacher, $teacher->id, false ), esc_html( $teacher->first_name . ' ' . $teacher->last_name ) );
+						}
+						?>
+					</select>
 					<input type="search" name="s" value="<?php echo isset( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : ''; ?>" placeholder="<?php esc_attr_e( 'Search subjects...', 'school-management-system' ); ?>" />
 					<button type="submit" class="sms-search-btn"><?php esc_html_e( 'Search', 'school-management-system' ); ?></button>
-					<?php if ( ! empty( $_GET['s'] ) ) : ?>
+					<?php if ( ! empty( $_GET['s'] ) || ! empty( $_GET['teacher_id'] ) ) : ?>
 						<a href="<?php echo esc_url( admin_url( 'admin.php?page=sms-subjects' ) ); ?>" class="sms-reset-btn"><?php esc_html_e( 'Reset', 'school-management-system' ); ?></a>
 					<?php endif; ?>
 				</form>
@@ -345,6 +372,7 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 				<th><?php esc_html_e( 'ID', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Subject Name', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Subject Code', 'school-management-system' ); ?></th>
+				<th><?php esc_html_e( 'Assigned Teacher', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Status', 'school-management-system' ); ?></th>
 				<th><?php esc_html_e( 'Actions', 'school-management-system' ); ?></th>
 			</tr>
@@ -352,8 +380,12 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 		<tbody>
 			<?php
 			$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+			$teacher_filter = isset( $_GET['teacher_id'] ) ? intval( $_GET['teacher_id'] ) : 0;
+
 			if ( ! empty( $search_term ) ) {
 				$subjects = Subject::search( $search_term );
+			} elseif ( $teacher_filter ) {
+				$subjects = Subject::get_all( array( 'teacher_id' => $teacher_filter ), 50 );
 			} else {
 				$subjects = Subject::get_all( array(), 50 );
 			}
@@ -365,6 +397,12 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 						<td><?php echo intval( $subject->id ); ?></td>
 						<td><?php echo esc_html( $subject->subject_name ); ?></td>
 						<td><?php echo esc_html( $subject->subject_code ); ?></td>
+						<td>
+							<?php 
+							$teacher_obj = $subject->teacher_id ? Teacher::get( $subject->teacher_id ) : null;
+							echo $teacher_obj ? esc_html( $teacher_obj->first_name . ' ' . $teacher_obj->last_name ) : '<span style="color:#999;">' . esc_html__( 'Not Assigned', 'school-management-system' ) . '</span>'; 
+							?>
+						</td>
 						<td>
 							<span class="sms-status-pill <?php echo 'inactive' === $subject->status ? 'inactive' : 'active'; ?>">
 								<?php echo esc_html( $subject->status ); ?>
@@ -384,7 +422,7 @@ $inactive_subjects = Subject::count( array( 'status' => 'inactive' ) );
 			} else {
 				?>
 				<tr>
-					<td colspan="6"><?php esc_html_e( 'No subjects found', 'school-management-system' ); ?></td>
+					<td colspan="7"><?php esc_html_e( 'No subjects found', 'school-management-system' ); ?></td>
 				</tr>
 				<?php
 			}
