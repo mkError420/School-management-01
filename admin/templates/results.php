@@ -1556,88 +1556,6 @@ $show_form = ( 'add' === $action || $is_edit );
 
 						</div>
 
-						<!-- File Upload Section -->
-						<div class="sms-upload-section">
-							<div class="sms-upload-header">
-								<h4>
-									<span class="dashicons dashicons-upload"></span>
-									<?php esc_html_e( 'Bulk Upload Results', 'school-management-system' ); ?>
-								</h4>
-								<div class="upload-toggle">
-									<button type="button" id="toggle-upload" class="sms-btn sms-btn-secondary" onclick="toggleUploadContent()">
-										<span class="dashicons dashicons-arrow-down-alt2"></span>
-										<span><?php esc_html_e( 'Show Upload Options', 'school-management-system' ); ?></span>
-									</button>
-								</div>
-							</div>
-							
-							<div class="sms-upload-content" id="upload-content" style="display: none;">
-								<div class="upload-instructions">
-									<div class="instruction-box">
-										<h5><?php esc_html_e( 'File Format Requirements:', 'school-management-system' ); ?></h5>
-										<ul>
-											<li><?php esc_html_e( 'Supported formats: .xlsx, .xls, .csv', 'school-management-system' ); ?></li>
-											<li><?php esc_html_e( 'Maximum file size: 5MB', 'school-management-system' ); ?></li>
-											<li><?php esc_html_e( 'Required columns: Student Roll Number, Obtained Marks', 'school-management-system' ); ?></li>
-											<li><?php esc_html_e( 'Optional columns: Student Name, Remarks', 'school-management-system' ); ?></li>
-										</ul>
-									</div>
-									
-									<div class="template-download">
-										<a href="#" id="download-template" class="sms-btn sms-btn-outline">
-											<span class="dashicons dashicons-download"></span>
-											<?php esc_html_e( 'Download Template', 'school-management-system' ); ?>
-										</a>
-									</div>
-								</div>
-
-								<div class="upload-area" id="upload-area">
-									<div class="upload-dropzone" id="dropzone">
-										<div class="upload-icon">
-											<span class="dashicons dashicons-cloud-upload"></span>
-										</div>
-										<div class="upload-text">
-											<p><strong><?php esc_html_e( 'Drop file here or click to browse', 'school-management-system' ); ?></strong></p>
-											<p><?php esc_html_e( 'Excel (.xlsx, .xls) or CSV files', 'school-management-system' ); ?></p>
-										</div>
-										<input type="file" id="result-file" name="result_file" accept=".xlsx,.xls,.csv" style="display: none;">
-									</div>
-								</div>
-
-								<div class="upload-preview" id="upload-preview" style="display: none;">
-									<h5><?php esc_html_e( 'File Preview:', 'school-management-system' ); ?></h5>
-									<div class="file-info">
-										<span class="file-name" id="file-name"></span>
-										<span class="file-size" id="file-size"></span>
-										<button type="button" id="remove-file" class="sms-btn sms-btn-danger sms-btn-small">
-											<span class="dashicons dashicons-no-alt"></span>
-											<?php esc_html_e( 'Remove', 'school-management-system' ); ?>
-										</button>
-									</div>
-								</div>
-
-								<div class="upload-actions">
-									<button type="button" id="process-file" class="sms-btn sms-btn-primary" disabled>
-										<span class="dashicons dashicons-upload"></span>
-										<?php esc_html_e( 'Process File', 'school-management-system' ); ?>
-									</button>
-								</div>
-
-								<div class="upload-progress" id="upload-progress" style="display: none;">
-									<div class="progress-bar">
-										<div class="progress-fill" id="progress-fill"></div>
-									</div>
-									<div class="progress-text" id="progress-text">0%</div>
-								</div>
-
-								<div class="upload-results" id="upload-results" style="display: none;">
-									<h5><?php esc_html_e( 'Import Results:', 'school-management-system' ); ?></h5>
-									<div class="results-summary" id="results-summary"></div>
-									<div class="results-details" id="results-details"></div>
-								</div>
-							</div>
-						</div>
-
 						<div class="sms-form-actions">
 
 							<?php if ( $is_edit ) : ?>
@@ -2570,24 +2488,6 @@ jQuery(document).ready(function($) {
 			}
 		});
 	});
-
-	// Simple inline function as backup
-	function toggleUploadContent() {
-		var content = document.getElementById('upload-content');
-		var button = document.getElementById('toggle-upload');
-		var icon = button.querySelector('.dashicons');
-		var text = button.querySelector('span:nth-child(2)');
-		
-		if (content.style.display === 'none') {
-			content.style.display = 'block';
-			text.textContent = 'Hide Upload Options';
-			icon.className = 'dashicons dashicons-arrow-up-alt2';
-		} else {
-			content.style.display = 'none';
-			text.textContent = 'Show Upload Options';
-			icon.className = 'dashicons dashicons-arrow-down-alt2';
-		}
-	}
 
 	// File Dropzone
 	$('#dropzone').on('click', function() {
