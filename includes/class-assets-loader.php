@@ -221,6 +221,34 @@ class Assets_Loader {
 				background: #fcfcfc; border: 1px solid #f0f0f0; margin-bottom: 8px; border-radius: 6px; padding: 10px 15px; transition: all 0.2s;
 			}
 			#dashboard-widgets .postbox .inside ul li:hover { background: #fff; border-color: #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(2px); }
+			
+			/* Print Styles */
+			@media print {
+				#adminmenumain, #wpadminbar, #wpfooter, .update-nag, .notice, .page-title-action, .tablenav, .search-box, .sms-panel-header, .sms-dashboard-cards, .nav-tab-wrapper, .sms-filter-card, .sms-stats-grid, .sms-status-distribution, .sms-enrollments-header, .sms-enrollments-search, .bulkactions, .sms-results-search, .sms-filter-section {
+					display: none !important;
+				}
+				#wpcontent, #wpbody-content, #wpbody, .wrap, .sms-panel, .sms-panel-body {
+					margin: 0 !important;
+					padding: 0 !important;
+					height: auto !important;
+					width: 100% !important;
+					overflow: visible !important;
+					background: #fff !important;
+					box-shadow: none !important;
+					border: none !important;
+				}
+				.wp-list-table {
+					width: 100% !important;
+					border: 1px solid #ddd !important;
+					box-shadow: none !important;
+				}
+				.wp-list-table th, .wp-list-table td {
+					color: #000 !important;
+				}
+				.column-actions, th.column-actions, td.column-actions, .check-column, .sms-row-actions {
+					display: none !important;
+				}
+			}
 		";
 		wp_add_inline_style( 'sms-admin-style', $custom_css );
 

@@ -324,4 +324,10 @@ jQuery(document).ready(function ($) {
 			.html('.spin { animation: spin 1s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }')
 			.appendTo('head');
 	}
+
+	// Print functionality for results
+	$('.sms-print-results').on('click', function (e) {
+		e.preventDefault();
+		window.print();
+	});
 });
