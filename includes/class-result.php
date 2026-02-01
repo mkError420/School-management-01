@@ -286,7 +286,7 @@ class Result {
 
 		$sql = "SELECT r.*, 
 				s.first_name, s.last_name, s.roll_number, 
-				e.exam_name, e.total_marks, e.passing_marks, e.exam_date,
+					e.exam_name, e.total_marks, e.passing_marks, e.exam_date,
 				c.class_name, 
 				sub.subject_name 
 				FROM $results_table r
