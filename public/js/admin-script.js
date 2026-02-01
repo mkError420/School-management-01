@@ -239,7 +239,11 @@ jQuery(document).ready(function ($) {
 					alert(response.data.message);
 					location.reload();
 				} else {
-					alert('Error: ' + response.data);
+					var errorMsg = response.data;
+					if (response.data && response.data.message) {
+						errorMsg = response.data.message;
+					}
+					alert('Error: ' + errorMsg);
 				}
 			},
 			error: function () {

@@ -249,11 +249,11 @@ function sms_ajax_add_result() {
 	}
 
 	if ( ! $nonce_verified ) {
-		wp_send_json_error( __( 'Security check failed.', 'school-management-system' ) );
+		wp_send_json_error( array( 'message' => __( 'Security check failed.', 'school-management-system' ) ) );
 	}
 
 	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_send_json_error( __( 'Unauthorized', 'school-management-system' ) );
+		wp_send_json_error( array( 'message' => __( 'Unauthorized', 'school-management-system' ) ) );
 	}
 
 	$exam_id        = intval( $_POST['exam_id'] ?? 0 );
@@ -262,7 +262,35 @@ function sms_ajax_add_result() {
 	$obtained_marks = isset( $_POST['obtained_marks'] ) ? floatval( $_POST['obtained_marks'] ) : '';
 
 	if ( empty( $exam_id ) || empty( $subject_id ) || empty( $student_id ) || '' === $obtained_marks ) {
-		wp_send_json_error( __( 'Please fill in all required fields.', 'school-management-system' ) );
+		wp_send_json_error( array( 'message' => __( 'Please fill in all required fields.', 'school-management-system' ) ) );
+	}
+
+	// Calculate percentage and grade
+	$exam = Exam::get( $exam_id );
+	if ( ! $exam ) {
+		wp_send_json_error( array( 'message' => __( 'Exam not found.', 'school-management-system' ) ) );
+	}
+
+	$total_marks = floatval( $exam->total_marks );
+	if ( $total_marks <= 0 ) {
+		$total_marks = 100;
+	}
+
+	$percentage = ( $obtained_marks / $total_marks ) * 100;
+	
+	$grade = 'F';
+	if ( $percentage >= 80 ) {
+		$grade = 'A+';
+	} elseif ( $percentage >= 70 ) {
+		$grade = 'A';
+	} elseif ( $percentage >= 60 ) {
+		$grade = 'A-';
+	} elseif ( $percentage >= 50 ) {
+		$grade = 'B';
+	} elseif ( $percentage >= 40 ) {
+		$grade = 'C';
+	} elseif ( $percentage >= 33 ) {
+		$grade = 'D';
 	}
 
 	$result_data = array(
@@ -270,6 +298,8 @@ function sms_ajax_add_result() {
 		'subject_id'     => $subject_id,
 		'student_id'     => $student_id,
 		'obtained_marks' => $obtained_marks,
+		'percentage'     => $percentage,
+		'grade'          => $grade,
 		'status'         => 'published',
 	);
 
@@ -291,10 +321,12 @@ function sms_ajax_add_result() {
 		$message = __( 'Result added successfully.', 'school-management-system' );
 	}
 
-	if ( false !== $result ) {
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	} elseif ( false !== $result ) {
 		wp_send_json_success( array( 'message' => $message ) );
 	} else {
-		wp_send_json_error( __( 'Failed to save result.', 'school-management-system' ) );
+		wp_send_json_error( array( 'message' => __( 'Failed to save result.', 'school-management-system' ) ) );
 	}
 }
 function sms_ajax_generate_voucher() {
