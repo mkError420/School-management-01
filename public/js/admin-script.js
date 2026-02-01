@@ -330,4 +330,7 @@ jQuery(document).ready(function ($) {
 		e.preventDefault();
 		window.print();
 	});
+
+	// Allow Excel files in import
+	$('input[name="import_file"]').attr('accept', '.csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv');
 });

@@ -1616,15 +1616,28 @@ class Admin {
 			}
 
 			if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
-				$file = fopen( $_FILES['import_file']['tmp_name'], 'r' );
-				ini_set( 'auto_detect_line_endings', true );
+				$filename = $_FILES['import_file']['name'];
+				$ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+				$rows = array();
 
-				fgetcsv( $file ); // Skip header row.
+				if ( 'xlsx' === $ext ) {
+					$rows = $this->parse_xlsx( $_FILES['import_file']['tmp_name'] );
+					array_shift( $rows ); // Skip header
+				} else {
+					$file = fopen( $_FILES['import_file']['tmp_name'], 'r' );
+					ini_set( 'auto_detect_line_endings', true );
+					fgetcsv( $file ); // Skip header row.
+					while ( ( $row = fgetcsv( $file ) ) !== false ) {
+						$rows[] = $row;
+					}
+					fclose( $file );
+				}
+
 				$imported = 0;
 				$failed = 0;
 				$last_error = '';
 
-				while ( ( $row = fgetcsv( $file ) ) !== false ) {
+				foreach ( $rows as $row ) {
 					$row = array_pad( $row, 3, '' );
 					if ( empty( array_filter( $row ) ) ) {
 						continue;
@@ -1665,7 +1678,6 @@ class Admin {
 						$last_error = is_wp_error( $result ) ? $result->get_error_message() : 'Database error.';
 					}
 				}
-				fclose( $file );
 				wp_redirect( admin_url( 'admin.php?page=sms-results&tab=bulk_entry&sms_message=import_completed&count=' . $imported . '&failed=' . $failed . '&error=' . urlencode( $last_error ) ) );
 				exit;
 			}
@@ -1836,5 +1848,49 @@ class Admin {
 			wp_redirect( $redirect_url );
 			exit;
 		}
+	}
+
+	/**
+	 * Parse XLSX file.
+	 *
+	 * @param string $file File path.
+	 * @return array Rows.
+	 */
+	private function parse_xlsx( $file ) {
+		$rows = array();
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return $rows;
+		}
+		$zip = new \ZipArchive();
+		if ( $zip->open( $file ) === true ) {
+			$strings = array();
+			if ( $zip->locateName( 'xl/sharedStrings.xml' ) !== false ) {
+				$xml = simplexml_load_string( $zip->getFromName( 'xl/sharedStrings.xml' ) );
+				if ( $xml && isset( $xml->si ) ) {
+					foreach ( $xml->si as $si ) {
+						$strings[] = (string) $si->t;
+					}
+				}
+			}
+			if ( $zip->locateName( 'xl/worksheets/sheet1.xml' ) !== false ) {
+				$xml = simplexml_load_string( $zip->getFromName( 'xl/worksheets/sheet1.xml' ) );
+				if ( $xml && isset( $xml->sheetData->row ) ) {
+					foreach ( $xml->sheetData->row as $row ) {
+						$r = array();
+						foreach ( $row->c as $c ) {
+							$attr = $c->attributes();
+							$val = isset( $c->v ) ? (string) $c->v : '';
+							if ( isset( $attr['t'] ) && (string) $attr['t'] === 's' ) {
+								$val = isset( $strings[ intval( $val ) ] ) ? $strings[ intval( $val ) ] : $val;
+							}
+							$r[] = $val;
+						}
+						$rows[] = $r;
+					}
+				}
+			}
+			$zip->close();
+		}
+		return $rows;
 	}
 }
