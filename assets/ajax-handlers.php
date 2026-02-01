@@ -318,6 +318,18 @@ function sms_ajax_add_result() {
 		$message = __( 'Result updated successfully.', 'school-management-system' );
 	} else {
 		$result = Result::add( $result_data );
+		
+		// Self-healing: If add fails, it might be due to missing columns in DB.
+		if ( false === $result ) {
+			// Try to load Activator and update tables
+			if ( defined( 'SMS_PLUGIN_DIR' ) && file_exists( SMS_PLUGIN_DIR . 'includes/class-activator.php' ) ) {
+				require_once SMS_PLUGIN_DIR . 'includes/class-activator.php';
+				\School_Management_System\Activator::activate();
+				// Retry adding
+				$result = Result::add( $result_data );
+			}
+		}
+		
 		$message = __( 'Result added successfully.', 'school-management-system' );
 	}
 
@@ -326,7 +338,8 @@ function sms_ajax_add_result() {
 	} elseif ( false !== $result ) {
 		wp_send_json_success( array( 'message' => $message ) );
 	} else {
-		wp_send_json_error( array( 'message' => __( 'Failed to save result.', 'school-management-system' ) ) );
+		$error_msg = ! empty( $wpdb->last_error ) ? $wpdb->last_error : __( 'Failed to save result.', 'school-management-system' );
+		wp_send_json_error( array( 'message' => $error_msg ) );
 	}
 }
 function sms_ajax_generate_voucher() {
