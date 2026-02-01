@@ -111,6 +111,9 @@ class Plugin {
 
 		add_action( 'wp_ajax_sms_add_result', 'sms_ajax_add_result' );
 		add_action( 'wp_ajax_nopriv_sms_add_result', 'sms_ajax_add_result' );
+
+		add_action( 'wp_ajax_sms_upload_results', 'sms_ajax_upload_results' );
+		add_action( 'wp_ajax_nopriv_sms_upload_results', 'sms_ajax_upload_results' );
 	}
 
 	/**

@@ -342,6 +342,274 @@ function sms_ajax_add_result() {
 		wp_send_json_error( array( 'message' => $error_msg ) );
 	}
 }
+/**
+ * Upload results from Excel/CSV file via AJAX.
+ */
+function sms_ajax_upload_results() {
+	// Enable error logging for debugging
+	error_log('SMS Upload Results AJAX: Started');
+	
+	if ( ! defined( 'DOING_AJAX' ) ) {
+		define( 'DOING_AJAX', true );
+	}
+	
+	// Check nonce
+	if ( ! isset( $_POST['sms_nonce'] ) || ! wp_verify_nonce( $_POST['sms_nonce'], 'sms_nonce_form' ) ) {
+		error_log('SMS Upload Results AJAX: Nonce verification failed');
+		wp_send_json_error( __( 'Security check failed.', 'school-management-system' ) );
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		error_log('SMS Upload Results AJAX: Unauthorized access');
+		wp_send_json_error( __( 'Unauthorized', 'school-management-system' ) );
+	}
+
+	$exam_id = intval( $_POST['exam_id'] ?? 0 );
+	$subject_id = intval( $_POST['subject_id'] ?? 0 );
+
+	error_log('SMS Upload Results AJAX: Exam: ' . $exam_id . ', Subject: ' . $subject_id);
+
+	// Validate required fields
+	if ( empty( $exam_id ) || empty( $subject_id ) ) {
+		error_log('SMS Upload Results AJAX: Missing exam or subject');
+		wp_send_json_error( __( 'Please select Exam and Subject.', 'school-management-system' ) );
+	}
+
+	// Check if file was uploaded
+	if ( ! isset( $_FILES['result_file'] ) || $_FILES['result_file']['error'] !== UPLOAD_ERR_OK ) {
+		error_log('SMS Upload Results AJAX: No file uploaded or upload error');
+		wp_send_json_error( __( 'No file uploaded or upload error occurred.', 'school-management-system' ) );
+	}
+
+	$file = $_FILES['result_file'];
+	
+	// Validate file type
+	$allowed_types = array(
+		'application/vnd.ms-excel',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'text/csv',
+		'application/csv'
+	);
+	
+	$allowed_extensions = array('xlsx', 'xls', 'csv');
+	$file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+	
+	if ( ! in_array($file['type'], $allowed_types) && ! in_array($file_extension, $allowed_extensions) ) {
+		error_log('SMS Upload Results AJAX: Invalid file type: ' . $file['type']);
+		wp_send_json_error( __( 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files only.', 'school-management-system' ) );
+	}
+
+	// Validate file size (5MB)
+	$max_size = 5 * 1024 * 1024; // 5MB
+	if ( $file['size'] > $max_size ) {
+		error_log('SMS Upload Results AJAX: File too large: ' . $file['size']);
+		wp_send_json_error( __( 'File size too large. Maximum file size is 5MB.', 'school-management-system' ) );
+	}
+
+	try {
+		// Process the file
+		$results = process_result_file($file, $exam_id, $subject_id);
+		
+		error_log('SMS Upload Results AJAX: Processing completed');
+		
+		wp_send_json_success( array(
+			'message' => __( 'File processed successfully!', 'school-management-system' ),
+			'total' => $results['total'],
+			'successful' => $results['successful'],
+			'failed' => $results['failed'],
+			'duplicates' => $results['duplicates'],
+			'details' => $results['details']
+		) );
+		
+	} catch ( Exception $e ) {
+		error_log('SMS Upload Results AJAX: Exception caught: ' . $e->getMessage());
+		wp_send_json_error( __( 'An error occurred while processing the file: ', 'school-management-system' ) . $e->getMessage() );
+	}
+}
+
+function process_result_file($file, $exam_id, $subject_id) {
+	global $wpdb;
+	
+	$results = array(
+		'total' => 0,
+		'successful' => 0,
+		'failed' => 0,
+		'duplicates' => 0,
+		'details' => array()
+	);
+	
+	// Get exam details for grade calculation
+	$exam_table = $wpdb->prefix . 'sms_exams';
+	$exam = $wpdb->get_row($wpdb->prepare("SELECT total_marks, passing_marks FROM $exam_table WHERE id = %d", $exam_id));
+	
+	if (!$exam) {
+		throw new Exception(__('Exam not found.', 'school-management-system'));
+	}
+	
+	// Read file based on type
+	$file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+	$data = array();
+	
+	if ($file_extension === 'csv') {
+		$data = read_csv_file($file['tmp_name']);
+	} else {
+		// For Excel files, we'll use a simple approach - convert to CSV or use PHPExcel if available
+		$data = read_excel_file($file['tmp_name'], $file_extension);
+	}
+	
+	if (empty($data)) {
+		throw new Exception(__('No data found in file or invalid file format.', 'school-management-system'));
+	}
+	
+	$results['total'] = count($data);
+	
+	// Process each row
+	foreach ($data as $row_index => $row) {
+		try {
+			// Skip header row if it contains text instead of roll numbers
+			if ($row_index === 0 && !is_numeric($row[0])) {
+				continue;
+			}
+			
+			$roll_number = trim($row[0] ?? '');
+			$student_name = trim($row[1] ?? '');
+			$obtained_marks = floatval($row[2] ?? 0);
+			$remarks = trim($row[3] ?? '');
+			
+			if (empty($roll_number) || $obtained_marks < 0) {
+				$results['failed']++;
+				$results['details'][] = array(
+					'status' => 'error',
+					'message' => sprintf(__('Row %d: Missing roll number or invalid marks', 'school-management-system'), $row_index + 1)
+				);
+				continue;
+			}
+			
+			// Find student by roll number
+			$student_table = $wpdb->prefix . 'sms_students';
+			$student = $wpdb->get_row($wpdb->prepare(
+				"SELECT id FROM $student_table WHERE roll_number = %s LIMIT 1",
+				$roll_number
+			));
+			
+			if (!$student) {
+				$results['failed']++;
+				$results['details'][] = array(
+					'status' => 'error',
+					'message' => sprintf(__('Row %d: Student with roll number %s not found', 'school-management-system'), $row_index + 1, $roll_number)
+				);
+				continue;
+			}
+			
+			$student_id = $student->id;
+			
+			// Check for duplicate result
+			$results_table = $wpdb->prefix . 'sms_results';
+			$existing = $wpdb->get_row($wpdb->prepare(
+				"SELECT id FROM $results_table WHERE exam_id = %d AND subject_id = %d AND student_id = %d LIMIT 1",
+				$exam_id, $subject_id, $student_id
+			));
+			
+			if ($existing) {
+				$results['duplicates']++;
+				$results['details'][] = array(
+					'status' => 'warning',
+					'message' => sprintf(__('Row %d: Result already exists for %s', 'school-management-system'), $row_index + 1, $roll_number)
+				);
+				continue;
+			}
+			
+			// Calculate percentage and grade
+			$percentage = ($obtained_marks / $exam->total_marks) * 100;
+			
+			if ($percentage >= 90) $grade = 'A+';
+			elseif ($percentage >= 80) $grade = 'A';
+			elseif ($percentage >= 70) $grade = 'B';
+			elseif ($percentage >= 60) $grade = 'C';
+			elseif ($percentage >= 50) $grade = 'D';
+			else $grade = 'F';
+			
+			// Insert result
+			$insert_result = $wpdb->insert(
+				$results_table,
+				array(
+					'exam_id' => $exam_id,
+					'subject_id' => $subject_id,
+					'student_id' => $student_id,
+					'obtained_marks' => $obtained_marks,
+					'percentage' => $percentage,
+					'grade' => $grade,
+					'status' => 'published',
+					'created_at' => current_time('mysql'),
+					'updated_at' => current_time('mysql')
+				),
+				array('%d', '%d', '%d', '%f', '%f', '%s', '%s', '%s')
+			);
+			
+			if ($insert_result === false) {
+				$results['failed']++;
+				$results['details'][] = array(
+					'status' => 'error',
+					'message' => sprintf(__('Row %d: Database error for %s', 'school-management-system'), $row_index + 1, $roll_number)
+				);
+			} else {
+				$results['successful']++;
+				$results['details'][] = array(
+					'status' => 'success',
+					'message' => sprintf(__('Row %d: Successfully imported result for %s', 'school-management-system'), $row_index + 1, $roll_number)
+				);
+			}
+			
+		} catch (Exception $e) {
+			$results['failed']++;
+			$results['details'][] = array(
+				'status' => 'error',
+				'message' => sprintf(__('Row %d: %s', 'school-management-system'), $row_index + 1, $e->getMessage())
+			);
+		}
+	}
+	
+	return $results;
+}
+
+function read_csv_file($file_path) {
+	$data = array();
+	
+	if (($handle = fopen($file_path, 'r')) !== FALSE) {
+		while (($row = fgetcsv($handle, 1000, ',')) !== FALSE) {
+			if (!empty(array_filter($row))) {
+				$data[] = $row;
+			}
+		}
+		fclose($handle);
+	}
+	
+	return $data;
+}
+
+function read_excel_file($file_path, $extension) {
+	// Simple Excel reader - for basic functionality
+	// In a production environment, you might want to use PHPExcel or similar library
+	
+	$data = array();
+	
+	try {
+		// Try to read as CSV first (some Excel files can be read as CSV)
+		if (($handle = fopen($file_path, 'r')) !== FALSE) {
+			while (($row = fgetcsv($handle, 1000, ',')) !== FALSE) {
+				if (!empty(array_filter($row))) {
+					$data[] = $row;
+				}
+			}
+			fclose($handle);
+		}
+	} catch (Exception $e) {
+		throw new Exception(__('Unable to read Excel file. Please save as CSV format.', 'school-management-system'));
+	}
+	
+	return $data;
+}
+
 function sms_ajax_generate_voucher() {
 	// Enable error reporting for debugging
 	error_reporting(E_ALL);

@@ -1556,7 +1556,87 @@ $show_form = ( 'add' === $action || $is_edit );
 
 						</div>
 
+						<!-- File Upload Section -->
+						<div class="sms-upload-section">
+							<div class="sms-upload-header">
+								<h4>
+									<span class="dashicons dashicons-upload"></span>
+									<?php esc_html_e( 'Bulk Upload Results', 'school-management-system' ); ?>
+								</h4>
+								<div class="upload-toggle">
+									<button type="button" id="toggle-upload" class="sms-btn sms-btn-secondary" onclick="toggleUploadContent()">
+										<span class="dashicons dashicons-arrow-down-alt2"></span>
+										<span><?php esc_html_e( 'Show Upload Options', 'school-management-system' ); ?></span>
+									</button>
+								</div>
+							</div>
+							
+							<div class="sms-upload-content" id="upload-content" style="display: none;">
+								<div class="upload-instructions">
+									<div class="instruction-box">
+										<h5><?php esc_html_e( 'File Format Requirements:', 'school-management-system' ); ?></h5>
+										<ul>
+											<li><?php esc_html_e( 'Supported formats: .xlsx, .xls, .csv', 'school-management-system' ); ?></li>
+											<li><?php esc_html_e( 'Maximum file size: 5MB', 'school-management-system' ); ?></li>
+											<li><?php esc_html_e( 'Required columns: Student Roll Number, Obtained Marks', 'school-management-system' ); ?></li>
+											<li><?php esc_html_e( 'Optional columns: Student Name, Remarks', 'school-management-system' ); ?></li>
+										</ul>
+									</div>
+									
+									<div class="template-download">
+										<a href="#" id="download-template" class="sms-btn sms-btn-outline">
+											<span class="dashicons dashicons-download"></span>
+											<?php esc_html_e( 'Download Template', 'school-management-system' ); ?>
+										</a>
+									</div>
+								</div>
 
+								<div class="upload-area" id="upload-area">
+									<div class="upload-dropzone" id="dropzone">
+										<div class="upload-icon">
+											<span class="dashicons dashicons-cloud-upload"></span>
+										</div>
+										<div class="upload-text">
+											<p><strong><?php esc_html_e( 'Drop file here or click to browse', 'school-management-system' ); ?></strong></p>
+											<p><?php esc_html_e( 'Excel (.xlsx, .xls) or CSV files', 'school-management-system' ); ?></p>
+										</div>
+										<input type="file" id="result-file" name="result_file" accept=".xlsx,.xls,.csv" style="display: none;">
+									</div>
+								</div>
+
+								<div class="upload-preview" id="upload-preview" style="display: none;">
+									<h5><?php esc_html_e( 'File Preview:', 'school-management-system' ); ?></h5>
+									<div class="file-info">
+										<span class="file-name" id="file-name"></span>
+										<span class="file-size" id="file-size"></span>
+										<button type="button" id="remove-file" class="sms-btn sms-btn-danger sms-btn-small">
+											<span class="dashicons dashicons-no-alt"></span>
+											<?php esc_html_e( 'Remove', 'school-management-system' ); ?>
+										</button>
+									</div>
+								</div>
+
+								<div class="upload-actions">
+									<button type="button" id="process-file" class="sms-btn sms-btn-primary" disabled>
+										<span class="dashicons dashicons-upload"></span>
+										<?php esc_html_e( 'Process File', 'school-management-system' ); ?>
+									</button>
+								</div>
+
+								<div class="upload-progress" id="upload-progress" style="display: none;">
+									<div class="progress-bar">
+										<div class="progress-fill" id="progress-fill"></div>
+									</div>
+									<div class="progress-text" id="progress-text">0%</div>
+								</div>
+
+								<div class="upload-results" id="upload-results" style="display: none;">
+									<h5><?php esc_html_e( 'Import Results:', 'school-management-system' ); ?></h5>
+									<div class="results-summary" id="results-summary"></div>
+									<div class="results-details" id="results-details"></div>
+								</div>
+							</div>
+						</div>
 
 						<div class="sms-form-actions">
 
@@ -2470,6 +2550,263 @@ jQuery(document).ready(function($) {
 
 	}
 
-});
+	// Simple Upload Toggle - Working Version
+	jQuery(document).ready(function($) {
+		// Simple toggle function
+		$('#toggle-upload').click(function(e) {
+			e.preventDefault();
+			$('#upload-content').toggle();
+			
+			// Change button text
+			var $btn = $(this);
+			var $text = $btn.find('span').eq(1);
+			
+			if ($('#upload-content').is(':visible')) {
+				$text.text('Hide Upload Options');
+				$btn.find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+			} else {
+				$text.text('Show Upload Options');
+				$btn.find('.dashicons').removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+			}
+		});
+	});
 
-</script>
+	// Simple inline function as backup
+	function toggleUploadContent() {
+		var content = document.getElementById('upload-content');
+		var button = document.getElementById('toggle-upload');
+		var icon = button.querySelector('.dashicons');
+		var text = button.querySelector('span:nth-child(2)');
+		
+		if (content.style.display === 'none') {
+			content.style.display = 'block';
+			text.textContent = 'Hide Upload Options';
+			icon.className = 'dashicons dashicons-arrow-up-alt2';
+		} else {
+			content.style.display = 'none';
+			text.textContent = 'Show Upload Options';
+			icon.className = 'dashicons dashicons-arrow-down-alt2';
+		}
+	}
+
+	// File Dropzone
+	$('#dropzone').on('click', function() {
+		$('#result-file').click();
+	});
+
+	// Drag and Drop
+	$('#dropzone').on('dragover', function(e) {
+		e.preventDefault();
+		$(this).addClass('dragover');
+	});
+
+	$('#dropzone').on('dragleave', function(e) {
+		e.preventDefault();
+		$(this).removeClass('dragover');
+	});
+
+	$('#dropzone').on('drop', function(e) {
+		e.preventDefault();
+		$(this).removeClass('dragover');
+		
+		var files = e.originalEvent.dataTransfer.files;
+		if (files.length > 0) {
+			handleFileSelect(files[0]);
+		}
+	});
+
+	// File Selection
+	$('#result-file').on('change', function(e) {
+		if (e.target.files.length > 0) {
+			handleFileSelect(e.target.files[0]);
+		}
+	});
+
+	// Remove File
+	$('#remove-file').on('click', function() {
+		$('#result-file').val('');
+		$('#upload-preview').hide();
+		$('#process-file').prop('disabled', true);
+		$('#upload-results').hide();
+	});
+
+	// Download Template
+	$('#download-template').on('click', function(e) {
+		e.preventDefault();
+		downloadTemplate();
+	});
+
+	// Process File
+	$('#process-file').on('click', function() {
+		processUploadedFile();
+	});
+
+	function handleFileSelect(file) {
+		// Validate file type
+		var allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'application/csv'];
+		var allowedExtensions = ['.xlsx', '.xls', '.csv'];
+		
+		var fileName = file.name.toLowerCase();
+		var isValidType = false;
+		
+		for (var i = 0; i < allowedExtensions.length; i++) {
+			if (fileName.endsWith(allowedExtensions[i])) {
+				isValidType = true;
+				break;
+			}
+		}
+		
+		if (!isValidType) {
+			showFormMessage('error', '<?php esc_html_e( 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files only.', 'school-management-system' ); ?>');
+			return;
+		}
+		
+		// Validate file size (5MB)
+		var maxSize = 5 * 1024 * 1024; // 5MB
+		if (file.size > maxSize) {
+			showFormMessage('error', '<?php esc_html_e( 'File size too large. Maximum file size is 5MB.', 'school-management-system' ); ?>');
+			return;
+		}
+		
+		// Show file preview
+		$('#file-name').text(file.name);
+		$('#file-size').text(formatFileSize(file.size));
+		$('#upload-preview').show();
+		$('#process-file').prop('disabled', false);
+		
+		// Store file for processing
+		window.selectedFile = file;
+	}
+
+	function formatFileSize(bytes) {
+		if (bytes === 0) return '0 Bytes';
+		var k = 1024;
+		var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		var i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	function downloadTemplate() {
+		// Create a simple CSV template
+		var csvContent = "Student Roll Number,Student Name,Obtained Marks,Remarks\nSTU001,John Doe,85,Good performance\nSTU002,Jane Smith,92,Excellent\nSTU003,Bob Johnson,78,Needs improvement";
+		
+		var blob = new Blob([csvContent], { type: 'text/csv' });
+		var url = window.URL.createObjectURL(blob);
+		var a = document.createElement('a');
+		a.href = url;
+		a.download = 'result_upload_template.csv';
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}
+
+	function processUploadedFile() {
+		if (!window.selectedFile) {
+			showFormMessage('error', '<?php esc_html_e( 'No file selected.', 'school-management-system' ); ?>');
+			return;
+		}
+		
+		var examId = $('#exam_id').val();
+		var subjectId = $('#subject_id').val();
+		
+		if (!examId || !subjectId) {
+			showFormMessage('error', '<?php esc_html_e( 'Please select Exam and Subject before processing the file.', 'school-management-system' ); ?>');
+			return;
+		}
+		
+		$('#upload-progress').show();
+		$('#upload-results').hide();
+		
+		var formData = new FormData();
+		formData.append('action', 'sms_upload_results');
+		formData.append('result_file', window.selectedFile);
+		formData.append('exam_id', examId);
+		formData.append('subject_id', subjectId);
+		formData.append('sms_nonce', $('#sms_nonce').val());
+		
+		$.ajax({
+			url: ajaxurl,
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			xhr: function() {
+				var xhr = new window.XMLHttpRequest();
+				xhr.upload.addEventListener('progress', function(e) {
+					if (e.lengthComputable) {
+						var percentComplete = (e.loaded / e.total) * 100;
+						$('#progress-fill').css('width', percentComplete + '%');
+						$('#progress-text').text(Math.round(percentComplete) + '%');
+					}
+				}, false);
+				return xhr;
+			},
+			success: function(response) {
+				$('#upload-progress').hide();
+				
+				if (response.success) {
+					showUploadResults(response.data);
+					showFormMessage('success', response.data.message || '<?php esc_html_e( 'File processed successfully!', 'school-management-system' ); ?>');
+					
+					// Redirect after 3 seconds
+					setTimeout(function() {
+						window.location.href = '<?php echo esc_url(admin_url('admin.php?page=sms-results')); ?>';
+					}, 3000);
+				} else {
+					showFormMessage('error', response.data.message || '<?php esc_html_e( 'Failed to process file.', 'school-management-system' ); ?>');
+				}
+			},
+			error: function(xhr, status, error) {
+				$('#upload-progress').hide();
+				showFormMessage('error', '<?php esc_html_e( 'An error occurred while processing the file.', 'school-management-system' ); ?>');
+				console.error('Upload error:', error);
+			}
+		});
+	}
+
+	function showUploadResults(data) {
+		$('#upload-results').show();
+		
+		var summaryHtml = '<div class="result-item success">' +
+			'<span><?php esc_html_e( 'Total Records Processed:', 'school-management-system' ); ?></span>' +
+			'<span><strong>' + data.total + '</strong></span>' +
+			'</div>';
+		
+		if (data.successful > 0) {
+			summaryHtml += '<div class="result-item success">' +
+				'<span><?php esc_html_e( 'Successfully Imported:', 'school-management-system' ); ?></span>' +
+				'<span><strong>' + data.successful + '</strong></span>' +
+				'</div>';
+		}
+		
+		if (data.failed > 0) {
+			summaryHtml += '<div class="result-item error">' +
+				'<span><?php esc_html_e( 'Failed to Import:', 'school-management-system' ); ?></span>' +
+				'<span><strong>' + data.failed + '</strong></span>' +
+				'</div>';
+		}
+		
+		if (data.duplicates > 0) {
+			summaryHtml += '<div class="result-item warning">' +
+				'<span><?php esc_html_e( 'Duplicates Skipped:', 'school-management-system' ); ?></span>' +
+				'<span><strong>' + data.duplicates + '</strong></span>' +
+				'</div>';
+		}
+		
+		$('#results-summary').html(summaryHtml);
+		
+		// Show detailed results if available
+		if (data.details && data.details.length > 0) {
+			var detailsHtml = '<h6><?php esc_html_e( 'Detailed Results:', 'school-management-system' ); ?></h6>';
+			data.details.forEach(function(item) {
+				var statusClass = item.status === 'success' ? 'success' : (item.status === 'error' ? 'error' : 'warning');
+				detailsHtml += '<div class="result-item ' + statusClass + '">' +
+					'<span>' + item.message + '</span>' +
+					'</div>';
+			});
+			$('#results-details').html(detailsHtml);
+		}
+	}
+
+});
